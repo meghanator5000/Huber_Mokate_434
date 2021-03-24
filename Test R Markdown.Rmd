@@ -8,6 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse) 
+library(rvest)
+library(janitor)
 ```
 
 Create the tibble by importing csv file
@@ -27,11 +29,18 @@ total_minwage_comp_prod_r <-
 
 Load inflation
 ```{r}
-library("rvest")
 url <- "https://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/"
 inflation_source <- url %>%
   html() %>%
   html_nodes(xpath='//*[@id="post-17"]/div/div[1]/table') %>%
   html_table()
-inflation_source <- inflation_source[[1]]
-head(inflation_source)
+inflation_source_1 <- inflation_source[[1]]
+inflation <- inflation_source_1 %>%
+  row_to_names(row_number = 2) %>%
+  select(1, 16) %>%
+  rename("Annual Inflation" = 2) %>%
+  mutate(Year = as.double(Year), `Annual Inflation` = as.double(`Annual Inflation`))
+inflation
+
+master_set <- left_join(total_minwage_comp_prod_r, inflation, by="Year")
+```
