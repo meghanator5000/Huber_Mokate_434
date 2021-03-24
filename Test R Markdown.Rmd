@@ -12,7 +12,16 @@ library(tidyverse)
 
 Create the tibble by importing csv file
 ```{r}
-hourly_comp_net_prod_tb <- read_csv("Data_HourlyComp_NetProd.csv")
+hourly_comp_net_prod_tb <- read_csv("Data_HourlyCompensation_NetProd.csv")
+min_wage_tb <- read_csv("Data_Year_Minwage.csv")
+
+#Fill in the years with their min wages
+
+total_minwage_comp_prod <- left_join(hourly_comp_net_prod_tb, min_wage_tb, by="Year")
+
+total_minwage_comp_prod_r <- 
+  total_minwage_comp_prod %>%
+  fill(`Minimum Wage`, .direction = "up")
 
 ```
 
