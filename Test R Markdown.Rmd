@@ -7,34 +7,53 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+
+#Import libraries
 library(tidyverse) 
 library(rvest)
 library(janitor)
 ```
+# Introduction
+The US currently faces rising inequality, stagnating wages, and an ongoing debate around the federal minimum wage. This analysis seeks to join that conversation by examining the relationship between the federal minimum wage, inflation, and economic productivity. We feel that this research could indicate how appropriate or inappropriate the current federal minimum wage is in order to inform opinions regarding the wage increase discussions. By considering minimum wage changes over time, we can reflect on past policy, determine trends in context, and assess the validity of a case to increase minimum wage in the United States in the present day.
 
-Create the tibble by importing csv file
-```{r}
+We hope to examine how federal minimum wage in the United States has changed over time in relation to productivity and inflation, examining available data from 1948-2018. Specifically, we would like to assess what the expected minimum wage would be over time if it were consistently adjusted for inflation and increased according to productivity gains. We will compare this to what the actual minimum wage was year to year. 
+
+Ultimately, we hope to determine what minimum wage would have been in 2021 if it had risen according to both inflation and overall economic productivity.
+
+
+
+```{r,include=FALSE}
+
+#Here, we gather and combine our datasets from three main sources.
+
+#Source: https://www.epi.org/productivity-pay-gap/
 hourly_comp_net_prod_tb <- read_csv("Data_HourlyCompensation_NetProd.csv")
+
+
+#Source: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
 min_wage_tb <- read_csv("Data_Year_Minwage.csv")
 
-#Fill in the years with their min wages
-
+#Combine avg hourly compensation and net productivity datasets
 total_minwage_comp_prod <- left_join(hourly_comp_net_prod_tb, min_wage_tb, by="Year")
 
+#Fill in the federal minimum wage value; the original dataset only included information on when a law was passed to increase the federal minimum wage. Therefore, we need to fill in, year-by-year, what that value was.
 total_minwage_comp_prod_r <- 
   total_minwage_comp_prod %>%
-  fill(`Minimum Wage`, .direction = "up")
+  fill(`Minimum Wage`, .direction = "down")
+total_minwage_comp_prod_r
 
-```
 
-Load inflation
-```{r}
-url <- "https://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/"
-inflation_source <- url %>%
+#Retrieve data on annual inflation by scraping the USInflationCalculator website.
+inflation_data_url <- "https://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/"
+inflation_source <- inflation_data_url %>%
   html() %>%
   html_nodes(xpath='//*[@id="post-17"]/div/div[1]/table') %>%
   html_table()
+
 inflation_source_1 <- inflation_source[[1]]
+
+#Here, we create an annual inflation dataset by cleaning the data retrieved from the website.
 inflation <- inflation_source_1 %>%
   row_to_names(row_number = 2) %>%
   select(1, 16) %>%
@@ -42,5 +61,12 @@ inflation <- inflation_source_1 %>%
   mutate(Year = as.double(Year), `Annual Inflation` = as.double(`Annual Inflation`))
 inflation
 
+#Finally, combine all datasets by year to create a master dataset that we will use for our full analysis
 master_set <- left_join(total_minwage_comp_prod_r, inflation, by="Year")
+master_set
 ```
+
+# Preliminary Data Exploration
+
+Before conducting our formal analysis, we will begin by looking through through the basic statistics of our data and get a sense of how things are looking.
+
