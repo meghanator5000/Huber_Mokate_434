@@ -2,17 +2,23 @@
 title: "The Relationship between Productivity and Minimum Wage from 1948 to 2018"
 author: "Jane Huber & Meghan Mokate"
 date: "3/23/2021"
-output: html_document
+output:
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+#May need to install:
+#tinytex::install_tinytex()
+#install.packages("janitor")
 
 
 #Import libraries
 library(tidyverse) 
 library(rvest)
 library(janitor)
+library(tinytex)
 ```
 # Introduction
 The US currently faces rising inequality, stagnating wages, and an ongoing debate around the federal minimum wage. This analysis seeks to join that conversation by examining the relationship between the federal minimum wage, inflation, and economic productivity. We feel that this research could indicate how appropriate or inappropriate the current federal minimum wage is in order to inform opinions regarding the wage increase discussions. By considering minimum wage changes over time, we can reflect on past policy, determine trends in context, and assess the validity of a case to increase minimum wage in the United States in the present day.
