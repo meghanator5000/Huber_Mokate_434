@@ -1,5 +1,5 @@
 ---
-title: "Test R Markdown 2.0"
+title: "The Relationship between Productivity and Minimum Wage from 1948 to 2018"
 author: "Jane Huber & Meghan Mokate"
 date: "3/23/2021"
 output: html_document
