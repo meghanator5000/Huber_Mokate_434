@@ -8,7 +8,9 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
 
+```{r, include=FALSE}
 #May need to install:
 #tinytex::install_tinytex()
 #install.packages("janitor")
@@ -46,8 +48,11 @@ total_minwage_comp_prod <- left_join(hourly_comp_net_prod_tb, min_wage_tb, by="Y
 #Fill in the federal minimum wage value; the original dataset only included information on when a law was passed to increase the federal minimum wage. Therefore, we need to fill in, year-by-year, what that value was.
 total_minwage_comp_prod_r <- 
   total_minwage_comp_prod %>%
-  fill(`Minimum Wage`, .direction = "down")
+  fill(`Minimum Wage`, .direction = "down") 
 total_minwage_comp_prod_r
+
+# the 1948 and 1949 values of .40 were excluded, so add these in
+total_minwage_comp_prod_r$`Minimum Wage`[is.na(total_minwage_comp_prod_r$`Minimum Wage`)] <- .40
 
 
 #Retrieve data on annual inflation by scraping the USInflationCalculator website.
@@ -70,9 +75,62 @@ inflation
 #Finally, combine all datasets by year to create a master dataset that we will use for our full analysis
 master_set <- left_join(total_minwage_comp_prod_r, inflation, by="Year")
 master_set
+
+```
+
+```{r, warning=FALSE}
+# Calculate expected minimum wage based off inflation
+
+master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
+
+master_set$inflat_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$inflat_adj[i] <- master_set$`Minimum Wage`
+  } else {
+    master_set$inflat_adj[i] <- (master_set$inflat_adj[i - 1]*master_set$ann_inflat[i]) + master_set$inflat_adj[i-1]}
+}
+      
+# Calculate expected minimum wage based off productivity
+
+master_set <- master_set %>% 
+  mutate(`Net Productivity Change` = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
+
+master_set <- master_set %>% 
+  mutate(`Net Productivity Change` = (`Net Productivity Change` / 100))
+
+master_set$prod_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$prod_adj[i] <- master_set$`Minimum Wage`
+  } else {
+    master_set$prod_adj[i] <- (master_set$prod_adj[i - 1]*master_set$`Net Productivity Change`[i]) + master_set$prod_adj[i-1]}
+}
+
+# Calculate expected minimum wage based off inflation AND productivity
+
+master_set$net_impact <- master_set$ann_inflat + master_set$`Net Productivity Change`
+
+master_set$inflat_prod_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$inflat_prod_adj[i] <- master_set$`Minimum Wage`
+  } else {
+    master_set$inflat_prod_adj[i] <- (master_set$inflat_prod_adj[i - 1]*master_set$net_impact[i]) + master_set$inflat_prod_adj[i-1]} 
+}
+
+## MAYBE WE ONLY WANT TO LOOK AT THIS???
+
 ```
 
 # Preliminary Data Exploration
 
 Before conducting our formal analysis, we will begin by looking through through the basic statistics of our data and get a sense of how things are looking.
+
+
+
+
 
