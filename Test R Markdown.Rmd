@@ -22,6 +22,7 @@ library(rvest)
 library(janitor)
 library(tinytex)
 library(haven) # may use for regression / regression line
+library(splitstackshape) # for cSplit
 ```
 # Introduction
 The US currently faces rising inequality, stagnating wages, and an ongoing debate around the federal minimum wage. This analysis seeks to join that conversation by examining the relationship between the federal minimum wage, inflation, and economic productivity. We feel that this research could indicate how appropriate or inappropriate the current federal minimum wage is in order to inform opinions regarding the wage increase discussions. By considering minimum wage changes over time, we can reflect on past policy, determine trends in context, and assess the validity of a case to increase minimum wage in the United States in the present day.
@@ -136,6 +137,62 @@ master_set_1 <- master_set %>%
 ggplot() +
   geom_path(data = master_set_1, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) 
 ```
+
+```{r}
+# Add in regression datasets
+
+# Unemployment dataset; source: https://data.bls.gov/pdq/SurveyOutputServlet
+unemploy <- read_csv('unemploy.csv') %>%
+  row_to_names(row_number = 11) %>%
+  mutate_if(is.character,as.numeric) %>%
+  rowwise() %>%
+  mutate(avg_unemploy = mean(c_across(2:13))) %>%
+  select(1, 14)
+unemploy
+
+regress_set_a <- left_join(master_set, unemploy, by="Year")
+regress_set_a
+
+# Presidential party for each year dataset; source: https://github.com/awhstin/Dataset-List/blob/master/presidents.csv
+
+presidents <- read_csv('presidents.csv') %>%
+  cSplit("President Name,Years In Office,Number,Party", ",") %>%
+  rename(president = "President Name,Years In Office,Number,Party_1",
+         years = "President Name,Years In Office,Number,Party_2",
+         number = "President Name,Years In Office,Number,Party_3",
+         party = "President Name,Years In Office,Number,Party_4") %>%
+  separate(years, c("start_year", "end_year"), sep = "-") %>%
+  mutate(end_year = ifelse(president == "William H. Harrison", 1841, end_year)) %>%
+  mutate(end_year = ifelse(president == "Donald Trump", 2021, end_year)) %>%
+  pivot_longer(cols = c(start_year, end_year),
+               names_to = "start_end",
+               values_to = "Year",
+               values_transform = list("Year"=as.numeric)) %>%
+  select(1, 3, 5)
+
+regress_set_b <- left_join(regress_set_a, presidents, by="Year")
+regress_set_b
+
+regress_set_b <- regress_set_b[!duplicated(regress_set_b$Year, fromLast = T), ]
+
+ regress_set_b_1 <- regress_set_b %>%
+  fill(president, .direction = "up") %>%
+   fill(party, .direction = "up")
+ regress_set_b_1
+ 
+ regress_set_b_2 <- regress_set_b_1 %>%
+  fill(president, .direction = "down") %>%
+   fill(party, .direction = "down")
+ regress_set_b_2
+ 
+ 
+ 
+ 
+
+```
+
+
+
 
 
 #```{r, warning=FALSE}
