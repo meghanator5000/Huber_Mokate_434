@@ -120,7 +120,7 @@ for (i in seq(nrow(master_set))) {
 }
 
 
-master_set <- master_set %>%
+master_set_1 <- master_set %>%
   pivot_longer(cols = c(increase_calc, increase_act, accum_incr_act, accum_incr_calc),
                names_to = "Increase Type",
                values_to = "Increase Amount")
@@ -133,16 +133,15 @@ master_set <- master_set %>%
 
 
 ```{r}
-
-
 ggplot() +
-  geom_path(data = master_set, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) 
-+
-    geom_abline(aes(intercept = mean(master_set$incr_diff), slope = 0), color = "black", size = 1)  
+  geom_path(data = master_set_1, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) 
 ```
 
 
-```{r, warning=FALSE}
+#```{r, warning=FALSE}
+
+# PROBABLY WILL NOT USE THIS!
+
 # Calculate expected minimum wage based off inflation
 
 master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
