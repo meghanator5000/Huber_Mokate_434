@@ -21,6 +21,7 @@ library(tidyverse)
 library(rvest)
 library(janitor)
 library(tinytex)
+library(haven) # may use for regression / regression line
 ```
 # Introduction
 The US currently faces rising inequality, stagnating wages, and an ongoing debate around the federal minimum wage. This analysis seeks to join that conversation by examining the relationship between the federal minimum wage, inflation, and economic productivity. We feel that this research could indicate how appropriate or inappropriate the current federal minimum wage is in order to inform opinions regarding the wage increase discussions. By considering minimum wage changes over time, we can reflect on past policy, determine trends in context, and assess the validity of a case to increase minimum wage in the United States in the present day.
@@ -100,10 +101,32 @@ for (i in seq(nrow(master_set))) {
 
 master_set$incr_diff <- master_set$increase_calc - master_set$increase_act
 
+master_set$accum_incr_calc <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$accum_incr_calc[i] <- 0
+  } else {
+    master_set$accum_incr_calc[i] <- ((master_set$increase_calc[i] + master_set$accum_incr_calc[i - 1]))}
+}
+
+master_set$accum_incr_act <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$accum_incr_act[i] <- 0
+  } else {
+    master_set$accum_incr_act[i] <- ((master_set$increase_act[i] + master_set$accum_incr_act[i - 1]))}
+}
+
+
 master_set <- master_set %>%
-  pivot_longer(cols = c(increase_calc, increase_act),
+  pivot_longer(cols = c(increase_calc, increase_act, accum_incr_act, accum_incr_calc),
                names_to = "Increase Type",
                values_to = "Increase Amount")
+
+
+
 
 ```
 
@@ -111,10 +134,11 @@ master_set <- master_set %>%
 
 ```{r}
 
+
 ggplot() +
-  geom_path(data = master_set, aes(x = Year, y = `Increase Amount`, color = `Increase Type`))
-
-
+  geom_path(data = master_set, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) 
++
+    geom_abline(aes(intercept = mean(master_set$incr_diff), slope = 0), color = "black", size = 1)  
 ```
 
 
