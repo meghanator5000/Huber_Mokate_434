@@ -173,8 +173,6 @@ presidents <- read_csv('presidents.csv') %>%
 regress_set_b <- left_join(regress_set_a, presidents, by="Year")
 regress_set_b
 
-regress_set_b <- regress_set_b[!duplicated(regress_set_b$Year, fromLast = T), ]
-
  regress_set_b_1 <- regress_set_b %>%
   fill(president, .direction = "up") %>%
    fill(party, .direction = "up")
@@ -185,10 +183,7 @@ regress_set_b <- regress_set_b[!duplicated(regress_set_b$Year, fromLast = T), ]
    fill(party, .direction = "down")
  regress_set_b_2
  
- 
- 
- 
-
+ regress_set_b_2 <- regress_set_b_2[!duplicated(regress_set_b_2$Year, fromLast = T), ]
 ```
 
 
