@@ -83,8 +83,14 @@ master_set
 ```{r}
 master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
 
-master_set <- master_set %>% 
-  mutate(`Net Productivity Change` = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
+master_set$`Net Productivity Change` <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$`Net Productivity Change`[i] <- 0
+  } else {
+    master_set$`Net Productivity Change`[i] <- ((master_set$`Net Productivity`[i] - master_set$`Net Productivity`[i - 1]))}
+}
 
 master_set <- master_set %>% 
   mutate(`Net Productivity Change` = (`Net Productivity Change` / 100))
@@ -120,15 +126,10 @@ for (i in seq(nrow(master_set))) {
     master_set$accum_incr_act[i] <- ((master_set$increase_act[i] + master_set$accum_incr_act[i - 1]))}
 }
 
-
 master_set_1 <- master_set %>%
   pivot_longer(cols = c(increase_calc, increase_act, accum_incr_act, accum_incr_calc),
                names_to = "Increase Type",
                values_to = "Increase Amount")
-
-
-
-
 ```
 
 
@@ -210,10 +211,10 @@ for (i in seq(nrow(master_set))) {
 # Calculate expected minimum wage based off productivity
 
 master_set <- master_set %>% 
-  mutate(`Net Productivity Change` = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
+  mutate(net_prod_change = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
 
 master_set <- master_set %>% 
-  mutate(`Net Productivity Change` = (`Net Productivity Change` / 100))
+  mutate(net_prod_change = (net_prod_change / 100))
 
 master_set$prod_adj <- vector("numeric", 71)
 
@@ -221,13 +222,13 @@ for (i in seq(nrow(master_set))) {
   if (i == 1) {
     master_set$prod_adj[i] <- master_set$`Minimum Wage`
   } else {
-    master_set$prod_adj[i] <- (master_set$prod_adj[i - 1]*master_set$`Net Productivity Change`[i]) + master_set$prod_adj[i-1]}
+    master_set$prod_adj[i] <- (master_set$prod_adj[i - 1]*master_set$net_prod_change[i]) + master_set$prod_adj[i-1]}
 }
 
 
 # Calculate expected minimum wage based off inflation AND productivity
 
-master_set$net_impact <- master_set$ann_inflat + master_set$`Net Productivity Change`
+master_set$net_impact <- master_set$ann_inflat + master_set$net_prod_change
 
 master_set$inflat_prod_adj <- vector("numeric", 71)
 
