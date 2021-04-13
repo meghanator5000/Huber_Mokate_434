@@ -80,7 +80,7 @@ master_set
 
 ```
 
-```{r}
+```{r, warnings = FALSE}
 master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
 
 master_set$`Net Productivity Change` <- vector("numeric", 71)
@@ -253,6 +253,7 @@ for (i in seq(nrow(regress_set_c))) {
 
 ```{r}
 # consider: how to add in change years to identify possible trends??
+# most everything else is a year to year change except unemployment which is just a percentage...is this important?
 
 regress_set_c %>%
   pivot_longer(cols = c(pop_growth, avg_unemploy),
