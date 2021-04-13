@@ -138,7 +138,14 @@ master_set_1 <- master_set %>%
 ggplot() +
   geom_path(data = master_set_1, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) 
 ```
+# Preliminary Data Exploration
 
+Before conducting our formal analysis, we will begin by looking through through the basic statistics of our data and get a sense of how things are looking.
+
+*to complete*
+
+
+# Regression Datasets and Analysis
 ```{r}
 # Add in regression datasets
 
@@ -174,20 +181,42 @@ presidents <- read_csv('presidents.csv') %>%
 regress_set_b <- left_join(regress_set_a, presidents, by="Year")
 regress_set_b
 
- regress_set_b_1 <- regress_set_b %>%
+regress_set_b_1 <- regress_set_b %>%
   fill(president, .direction = "up") %>%
-   fill(party, .direction = "up")
- regress_set_b_1
+  fill(party, .direction = "up")
+regress_set_b_1
  
- regress_set_b_2 <- regress_set_b_1 %>%
+regress_set_b_2 <- regress_set_b_1 %>%
   fill(president, .direction = "down") %>%
-   fill(party, .direction = "down")
- regress_set_b_2
+  fill(party, .direction = "down")
+regress_set_b_2
  
- regress_set_b_2 <- regress_set_b_2[!duplicated(regress_set_b_2$Year, fromLast = T), ]
+regress_set_b_2 <- regress_set_b_2[!duplicated(regress_set_b_2$Year, fromLast = T), ]
+ 
+# Add in population dataset
+
+population_source <- read_csv('population_usafacts.csv')
+
+population <- population_source %>%
+  filter(Years == "Population (People)") %>%
+  select(50:122) %>%
+  pivot_longer(1:73, 
+               names_to = "Year",
+               values_to = "population",
+               names_transform = list("Year"=as.numeric))
+
+regress_set_c <- left_join(regress_set_b_2, population, by="Year")
+regress_set_c
+ 
+ 
 ```
 
+```{r}
+min_wage_regress <- lm(data = regress_set_c, `Minimum Wage` ~ avg_unemploy + party + population)
+summary(min_wage_regress)
 
+# test for collinearity ! 
+```
 
 
 
@@ -242,9 +271,7 @@ for (i in seq(nrow(master_set))) {
 ```
 
 
-# Preliminary Data Exploration
 
-Before conducting our formal analysis, we will begin by looking through through the basic statistics of our data and get a sense of how things are looking.
 
 
 
