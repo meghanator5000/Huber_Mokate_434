@@ -103,7 +103,7 @@ for (i in seq(nrow(master_set))) {
   if (i == 1) {
     master_set$increase_act[i] <- 0
   } else {
-    master_set$increase_act[i] <- ((master_set$`Minimum Wage`[i] - master_set$`Minimum Wage`[i - 1])/master_set$`Minimum Wage`[i])}
+    master_set$increase_act[i] <- ((master_set$`Minimum Wage`[i] - master_set$`Minimum Wage`[i - 1])/master_set$`Minimum Wage`[i - 1])} # CHECK THIS FORMULA
 }
 
 master_set$incr_diff <- master_set$increase_calc - master_set$increase_act
@@ -132,11 +132,34 @@ master_set_1 <- master_set %>%
                values_to = "Increase Amount")
 ```
 
+## Create a Theme
+```{r}
 
+# feel free to edit this however! just thought I'd throw in a theme draft
+# colors are probably too similar
+
+wage_theme <-
+  theme_minimal() + 
+  theme(
+    text = element_text(family = "Georgia"), 
+    plot.title = element_text(face = "bold", size = 16, color = "seagreen"), 
+    plot.subtitle = element_text(face = "italic", size = 14, color = "royalblue4"), 
+    axis.title = element_text(size = 14, face = "bold", color = "seagreen"), 
+    axis.text = element_text(size = 12, color = "navyblue"), 
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(), 
+    axis.text.x = element_text(angle = 90), 
+    legend.title = element_text(size = 12, face = "bold", color = "seagreen"), 
+    legend.text = element_text(size = 12, color = "navyblue")) 
+  #  plot.caption = element_text(color = "navyblue", size = 10))
+
+```
 
 ```{r}
 ggplot() +
-  geom_path(data = master_set_1, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) 
+  geom_path(data = master_set_1, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) +
+  labs(title = "Disparity in Actual and Calculated Minimum Wage Changes") +
+  wage_theme
 ```
 # Preliminary Data Exploration
 
@@ -149,16 +172,22 @@ Before conducting our formal analysis, we will begin by looking through through 
 ```{r}
 # Add in regression datasets
 
+# Create dummy variable for when there was a change in minimum wage
+regress_set <- master_set %>%
+  mutate(change = ifelse(increase_act == 0, 0, 1))
+
+
 # Unemployment dataset; source: https://data.bls.gov/pdq/SurveyOutputServlet
 unemploy <- read_csv('unemploy.csv') %>%
   row_to_names(row_number = 11) %>%
   mutate_if(is.character,as.numeric) %>%
   rowwise() %>%
   mutate(avg_unemploy = mean(c_across(2:13))) %>%
-  select(1, 14)
+  select(1, 14) %>%
+  mutate(avg_unemploy = (avg_unemploy / 100))
 unemploy
 
-regress_set_a <- left_join(master_set, unemploy, by="Year")
+regress_set_a <- left_join(regress_set, unemploy, by="Year")
 regress_set_a
 
 # Presidential party for each year dataset; source: https://github.com/awhstin/Dataset-List/blob/master/presidents.csv
@@ -193,7 +222,7 @@ regress_set_b_2
  
 regress_set_b_2 <- regress_set_b_2[!duplicated(regress_set_b_2$Year, fromLast = T), ]
  
-# Add in population dataset
+# Add in population dataset; source: https://usafacts.org/data/topics/people-society/population-and-demographics/population-data/population/#chart-12818-0
 
 population_source <- read_csv('population_usafacts.csv')
 
@@ -208,14 +237,84 @@ population <- population_source %>%
 regress_set_c <- left_join(regress_set_b_2, population, by="Year")
 regress_set_c
  
- 
+
+regress_set_c$pop_growth <- vector("numeric", 71)
+
+for (i in seq(nrow(regress_set_c))) {
+  if (i == 1) {
+    regress_set_c$pop_growth[i] <- 0
+  } else {
+    regress_set_c$pop_growth[i] <- ((regress_set_c$population[i] - regress_set_c$population[i - 1])/regress_set_c$population[i - 1])}
+} # Check calcs
+
+```
+
+# Exploratory Graphs
+
+```{r}
+# consider: how to add in change years to identify possible trends??
+
+regress_set_c %>%
+  pivot_longer(cols = c(pop_growth, avg_unemploy),
+                        names_to = "metric",
+                        values_to = "values") %>%
+  ggplot(aes(x = Year, y = values, group = metric, color = metric)) + 
+    geom_line() +
+    scale_color_manual(values = c("avg_unemploy" = "seagreen", "pop_growth" = "royalblue4")) +
+    wage_theme
+         
 ```
 
 ```{r}
-min_wage_regress <- lm(data = regress_set_c, `Minimum Wage` ~ avg_unemploy + party + population)
+# Changes in minimum wage and political party in power
+
+ggplot(regress_set_c, aes(x = Year, y = change, fill = party)) +
+  geom_col() +
+  scale_fill_manual(values = c("Democratic" = "seagreen", "Republican" = "royalblue4")) +
+  wage_theme
+         
+# There seems to be no relationship between party and changes in minimum wage
+```
+
+```{r}
+# Changes in minimum wage and unemployment
+
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot(aes(x = Year, y = avg_unemploy, fill = change)) + 
+    geom_col() +
+    scale_fill_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot() +
+    aes(x = Year, y = avg_unemploy, group = change, color = change) +
+    geom_point(color = "grey") +
+    geom_smooth(method = "lm") +
+    scale_color_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+         
+``` 
+
+```{r}
+# Changes in minimum wage and population
+
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot(aes(x = Year, y = pop_growth, fill = change)) + 
+    geom_col() +
+    scale_fill_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+         
+``` 
+
+```{r}
+min_wage_regress <- lm(data = regress_set_c, change ~ avg_unemploy + party + pop_growth)
 summary(min_wage_regress)
 
-# test for collinearity ! 
+# need to go back and review approaches to this
+# need to add logs???
 ```
 
 
