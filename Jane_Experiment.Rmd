@@ -1,0 +1,100 @@
+---
+title: "Jane_Experiment"
+author: "Jane Huber"
+date: "4/16/2021"
+output: html_document
+---
+
+I'm going to experiment a little in a separate document (so things don't get super messy in our main document). I'm hoping to grab everything we've done wrt data organization and prep, but then try and graph the minimum wage by multiplying every year by the increase in production and increase in inflation. Let's see...
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#May need to install:
+#tinytex::install_tinytex()
+#install.packages("janitor")
+
+#Import libraries
+library(tidyverse) 
+library(rvest)
+library(janitor)
+library(tinytex)
+library(haven) # may use for regression / regression line
+library(splitstackshape) # for cSplit
+```
+
+Get and clean data:
+
+```{r,include=FALSE}
+
+#Here, we gather and combine our datasets from three main sources.
+
+#Source: https://www.epi.org/productivity-pay-gap/
+hourly_comp_net_prod_tb <- read_csv("Data_HourlyCompensation_NetProd.csv")
+
+
+#Source: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
+min_wage_tb <- read_csv("Data_Year_Minwage.csv")
+
+#Combine avg hourly compensation and net productivity datasets
+total_minwage_comp_prod <- left_join(hourly_comp_net_prod_tb, min_wage_tb, by="Year")
+
+#Fill in the federal minimum wage value; the original dataset only included information on when a law was passed to increase the federal minimum wage. Therefore, we need to fill in, year-by-year, what that value was.
+total_minwage_comp_prod_r <- 
+  total_minwage_comp_prod %>%
+  fill(`Minimum Wage`, .direction = "down") 
+total_minwage_comp_prod_r
+
+# the 1948 and 1949 values of .40 were excluded, so add these in
+total_minwage_comp_prod_r$`Minimum Wage`[is.na(total_minwage_comp_prod_r$`Minimum Wage`)] <- .40
+
+
+#Retrieve data on annual inflation by scraping the USInflationCalculator website.
+inflation_data_url <- "https://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/"
+inflation_source <- inflation_data_url %>%
+  html() %>%
+  html_nodes(xpath='//*[@id="post-17"]/div/div[1]/table') %>%
+  html_table()
+
+inflation_source_1 <- inflation_source[[1]]
+
+#Here, we create an annual inflation dataset by cleaning the data retrieved from the website.
+inflation <- inflation_source_1 %>%
+  row_to_names(row_number = 2) %>%
+  select(1, 16) %>%
+  rename("Annual Inflation" = 2) %>%
+  mutate(Year = as.double(Year), `Annual Inflation` = as.double(`Annual Inflation`))
+inflation
+
+#Finally, combine all datasets by year to create a master dataset that we will use for our full analysis
+master_set <- left_join(total_minwage_comp_prod_r, inflation, by="Year")
+master_set
+
+```
+
+
+
+Here, I want to start making my adjustments. 
+Use a for-loop to iterate through each year, checking previous year's minimum wage and multiplying by this year's net productivity gain and inflation values.
+
+Given inflation and productivity bump from previous year, minimum wage should rise
+
+```{r}
+
+test_set <- master_set
+
+test_set$prev_year_increase
+
+for (i in 1:nrow(test_set)) {
+  
+  if (i != 1) {
+    
+    test_set$prev_year_increase[[i]] <- test_set$`Net Productivity`[[i-1]] + test_set$`Annual Inflation`[[i-1]]
+    
+  } else {
+    test_set$prev_year_increase[[i]] <- 0
+  }
+}
+
+
+```
