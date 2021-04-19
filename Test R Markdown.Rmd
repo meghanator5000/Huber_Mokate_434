@@ -356,6 +356,7 @@ for (i in seq(nrow(master_set))) {
     master_set$prod_adj[i] <- (master_set$prod_adj[i - 1]*master_set$net_prod_change[i]) + master_set$prod_adj[i-1]}
 }
 
+
 # Calculate expected minimum wage based off inflation AND productivity
 
 master_set$net_impact <- master_set$ann_inflat + master_set$net_prod_change
