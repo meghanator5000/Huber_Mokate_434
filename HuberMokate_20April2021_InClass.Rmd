@@ -2,7 +2,9 @@
 title: "In-Class Presentation"
 author: "Jane Huber & Meghan Mokate"
 date: "4/19/2021"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -24,17 +26,17 @@ library(splitstackshape) # for cSplit
 ```
 
 ## Overview
-Minimum Wage is a piece of federal economic policy that sets a floor for wage work in the United States. Originally brought into law during the Great Depression in the 1930’s, the aim was to create "minimum standard of living necessary for health, efficiency and general well-being, without substantially curtailing employment”. [source]
+Minimum Wage is a piece of federal economic policy that sets a floor for wage work in the United States. Originally brought into law during the Great Depression in the 1930’s, the aim was to create "minimum standard of living necessary for health, efficiency and general well-being, without substantially curtailing employment”.
 
 Ever since its creation, there has been vigorous debate across the US political spectrum as to what the value of a minimum wage should be or there should be one at all. 
 
-As the “Fight for 15” political movement rises to prominence on the national level, some economists argue that $15/hour simply isn’t ambitious enough or a reflection of the economy as a whole. The Center for Economic and Policy Research (CEPR) claims, “Until 1968, the minimum wage not only kept pace with inflation, it rose in step with productivity growth. The logic is straightforward; we expect that wages in general will rise in step with productivity growth. For workers at the bottom to share in the overall improvement in society’s living standards, the minimum wage should also rise with productivity.” (https://cepr.net/this-is-what-minimum-wage-would-be-if-it-kept-pace-with-productivity/)
+As the “Fight for 15” political movement rises to prominence on the national level, some economists argue that $15/hour simply isn’t ambitious enough or a reflection of the economy as a whole. The Center for Economic and Policy Research (CEPR) claims, “Until 1968, the minimum wage not only kept pace with inflation, it rose in step with productivity growth. The logic is straightforward; we expect that wages in general will rise in step with productivity growth. For workers at the bottom to share in the overall improvement in society’s living standards, the minimum wage should also rise with productivity.” 
 
-This analysis will examine that claim through our own analysis of the numbers, looking to see what the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables. Access to data to produce our own analysis is fairly straightforward, 
+This analysis will examine that claim through our own analysis of the numbers, looking to see what the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables.
 
-The US Bureau of Labor and Statistics (BLS) has tracked two key productivity measurements since 1948—a raw productivity rate (measuring output per hour) and a multifactor productivity rate (measuring output per unit of combined inputs) [https://www.bls.gov/bls/productivity.htm]. We will be using the raw productivity rate since we were able to access cleaned data 
+The US Bureau of Labor and Statistics (BLS) has tracked two key productivity measurements since 1948—a raw productivity rate (measuring output per hour) and a multifactor productivity rate (measuring output per unit of combined inputs) . We will be using the raw productivity rate since we were able to access cleaned data.
 
-The value of inflation of the US dollar is important to factor in because it imbeds purchasing power of the dollar into what the minimum wage includes. For example, a study by Pew Research demonstrates that the minimum wage in 1973, $4.03/hr, has the same purchasing power of $23.68 in August 2018—more than three times the actual minimum wage [https://www.pewresearch.org/fact-tank/2018/08/07/for-most-us-workers-real-wages-have-barely-budged-for-decades/].
+The value of inflation of the US dollar is important to factor in because it imbeds purchasing power of the dollar into what the minimum wage includes. For example, a study by Pew Research demonstrates that the minimum wage in 1973, $4.03/hr, has the same purchasing power of $23.68 in August 2018—more than three times the actual minimum wage.
 
 
 Citations:
@@ -109,16 +111,18 @@ master_set
 # This means that the minimum wage in 1948 is adjusted solely for inflation annually.
 # Does not reflect congress-updated minimum wage values.
 
-master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
+master_set_1 <- master_set
 
-master_set$inflat_adj <- vector("numeric", 71)
+master_set_1$ann_inflat <- (master_set_1$`Annual Inflation`) / 100
 
-for (i in seq(nrow(master_set))) {
+master_set_1$inflat_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_1))) {
   if (i == 1) {
-    master_set$inflat_adj[i] <- master_set$`Minimum Wage`
+    master_set_1$inflat_adj[i] <- master_set_1$`Minimum Wage`
   } else {
     
-    master_set$inflat_adj[i] <- master_set$inflat_adj[i - 1]* (1 + master_set$ann_inflat[i])
+    master_set_1$inflat_adj[i] <- master_set_1$inflat_adj[i - 1]* (1 + master_set_1$ann_inflat[i])
     }
 }
       
@@ -127,21 +131,22 @@ for (i in seq(nrow(master_set))) {
 # increases annually.
 # Does not reflect congress-updated minimum wage values.
 
-master_set <- 
-  master_set %>% 
+master_set_1 <- 
+  master_set_1 %>% 
   mutate(net_prod_change = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
 
-master_set <- master_set %>% 
+master_set_1 <- 
+  master_set_1 %>% 
   mutate(net_prod_change = (net_prod_change / 100))
 
-master_set$prod_adj <- vector("numeric", 71)
+master_set_1$prod_adj <- vector("numeric", 71)
 
-for (i in seq(nrow(master_set))) {
+for (i in seq(nrow(master_set_1))) {
   if (i == 1) {
-    master_set$prod_adj[i] <- master_set$`Minimum Wage`
+    master_set_1$prod_adj[i] <- master_set_1$`Minimum Wage`
   } else {
 
-    master_set$prod_adj[i] <- master_set$prod_adj[i - 1]*(1 + master_set$net_prod_change[i])
+    master_set_1$prod_adj[i] <- master_set_1$prod_adj[i - 1]*(1 + master_set_1$net_prod_change[i])
     }
 }
 
@@ -151,19 +156,19 @@ for (i in seq(nrow(master_set))) {
 # and productivity increases annually.
 # Does not reflect congress-updated minimum wage values.
 
-master_set$net_impact <- master_set$ann_inflat + master_set$net_prod_change
+master_set_1$net_impact <- master_set_1$ann_inflat + master_set_1$net_prod_change
 
-master_set$inflat_prod_adj <- vector("numeric", 71)
+master_set_1$inflat_prod_adj <- vector("numeric", 71)
 
-for (i in seq(nrow(master_set))) {
+for (i in seq(nrow(master_set_1))) {
   if (i == 1) {
-    master_set$inflat_prod_adj[i] <- master_set$`Minimum Wage`
+    master_set_1$inflat_prod_adj[i] <- master_set_1$`Minimum Wage`
   } else {
-    master_set$inflat_prod_adj[i] <- (master_set$inflat_prod_adj[i - 1]*master_set$net_impact[i]) + master_set$inflat_prod_adj[i-1]} 
+    master_set_1$inflat_prod_adj[i] <- (master_set_1$inflat_prod_adj[i - 1]*master_set_1$net_impact[i]) + master_set_1$inflat_prod_adj[i-1]} 
 }
 
-master_set <- 
-  master_set %>% 
+master_set_1 <- 
+  master_set_1 %>% 
   select(-c(`Hourly Compensation`, `Annual Inflation`, `Net Productivity`))
 
 
@@ -174,14 +179,14 @@ master_set <-
 # (3) Productivity minimum wage
 # (4) Inflation and productivity minimum wage
 
-master_set_1 <- 
-  master_set %>%
+master_set_2 <- 
+  master_set_1 %>%
   pivot_longer(cols = c("Minimum Wage", inflat_adj, prod_adj, inflat_prod_adj),
                names_to = "Type",
                values_to = "Dollars")
 
 #If people want to see more data, show in R Studio
-master_set_1
+master_set_2
 
 ```
 
@@ -209,7 +214,7 @@ wage_theme <-
 ```{r graph-values}
 
 wage_values_graph <- 
-  master_set_1 %>% 
+  master_set_2 %>% 
   ggplot() +
   geom_path(aes(x = Year, y=Dollars, color= Type)) +
   labs(title = "Disparity in Actual and Calculated Minimum Wage Changes") +
@@ -220,7 +225,68 @@ wage_values_graph
 ```
 
 
+## Other Calculations
 
+We also did this, focusing on percent difference rather than raw dollar amounts. Maybe this is right?
+
+```{r other-calculations, warnings = FALSE}
+
+master_set_3 <- master_set
+
+master_set_3$ann_inflat <- (master_set_3$`Annual Inflation`) / 100
+
+master_set_3$`Net Productivity Change` <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_3))) {
+  if (i == 1) {
+    master_set_3$`Net Productivity Change`[i] <- 0
+  } else {
+    master_set_3$`Net Productivity Change`[i] <- ((master_set_3$`Net Productivity`[i] - master_set_3$`Net Productivity`[i - 1]))}
+}
+
+master_set_3 <- master_set_3 %>% 
+  mutate(`Net Productivity Change` = (`Net Productivity Change` / 100))
+
+master_set_3$increase_calc <- master_set_3$ann_inflat + master_set_3$`Net Productivity Change`
+
+master_set_3$increase_act <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_3))) {
+  if (i == 1) {
+    master_set_3$increase_act[i] <- 0
+  } else {
+    master_set_3$increase_act[i] <- ((master_set_3$`Minimum Wage`[i] - master_set_3$`Minimum Wage`[i - 1])/master_set_3$`Minimum Wage`[i - 1])
+    } # CHECK THIS FORMULA
+}
+
+master_set_3$incr_diff <- master_set_3$increase_calc - master_set_3$increase_act
+
+master_set_3$accum_incr_calc <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_3))) {
+  if (i == 1) {
+    master_set_3$accum_incr_calc[i] <- 0
+  } else {
+    master_set_3$accum_incr_calc[i] <- ((master_set_3$increase_calc[i] + master_set_3$accum_incr_calc[i - 1]))}
+}
+
+master_set_3$accum_incr_act <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_3))) {
+  if (i == 1) {
+    master_set_3$accum_incr_act[i] <- 0
+  } else {
+    master_set_3$accum_incr_act[i] <- ((master_set_3$increase_act[i] + master_set_3$accum_incr_act[i - 1]))}
+}
+
+master_set_4 <- 
+  master_set_3 %>%
+  pivot_longer(cols = c(increase_calc, increase_act, accum_incr_act, accum_incr_calc),
+               names_to = "Increase Type",
+               values_to = "Increase Amount")
+
+master_set_4
+```
 
 
 
