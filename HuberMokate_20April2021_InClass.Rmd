@@ -20,6 +20,7 @@ library(janitor)
 library(tinytex)
 library(haven) # may use for regression / regression line
 library(splitstackshape) # for cSplit
+library(knitr)
 
 ```
 
@@ -36,6 +37,19 @@ The US Bureau of Labor and Statistics (BLS) has tracked two key productivity mea
 
 The value of inflation of the US dollar is important to factor in because it imbeds purchasing power of the dollar into what the minimum wage includes. For example, a study by Pew Research demonstrates that the minimum wage in 1973, $4.03/hr, has the same purchasing power of $23.68 in August 2018—more than three times the actual minimum wage [https://www.pewresearch.org/fact-tank/2018/08/07/for-most-us-workers-real-wages-have-barely-budged-for-decades/]. 
 
+Minimum Wage is a piece of federal economic policy that sets a floor for wage work in the United States. Originally brought into law during the Great Depression in the 1930’s, the aim was to create "minimum standard of living necessary for health, efficiency and general well-being, without substantially curtailing employment”.
+
+Ever since its creation, there has been vigorous debate across the US political spectrum as to what the value of a minimum wage should be or there should be one at all. 
+
+As the “Fight for 15” political movement rises to prominence on the national level, some economists argue that $15/hour simply isn’t ambitious enough or a reflection of the economy as a whole. The Center for Economic and Policy Research (CEPR) claims, “Until 1968, the minimum wage not only kept pace with inflation, it rose in step with productivity growth. The logic is straightforward; we expect that wages in general will rise in step with productivity growth. For workers at the bottom to share in the overall improvement in society’s living standards, the minimum wage should also rise with productivity.” 
+
+This analysis will examine that claim through our own analysis of the numbers, looking to see what the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables.
+
+The US Bureau of Labor and Statistics (BLS) has tracked two key productivity measurements since 1948—a raw productivity rate (measuring output per hour) and a multifactor productivity rate (measuring output per unit of combined inputs) . We will be using the raw productivity rate since we were able to access cleaned data.
+
+The value of inflation of the US dollar is important to factor in because it imbeds purchasing power of the dollar into what the minimum wage includes. For example, a study by Pew Research demonstrates that the minimum wage in 1973, $4.03/hr, has the same purchasing power of $23.68 in August 2018—more than three times the actual minimum wage.
+
+
 
 Citations:
 https://cepr.net/this-is-what-minimum-wage-would-be-if-it-kept-pace-with-productivity/
@@ -45,6 +59,13 @@ https://www.forbes.com/advisor/personal-finance/minimum-wage-debate/
 https://democracyjournal.org/magazine/29/minimum-wage-catching-up-to-productivity/
 https://www.nytimes.com/2020/06/18/business/coronavirus-minimum-wage-increase.html
 https://www.cnn.com/interactive/2019/business/us-minimum-wage-by-year/index.html
+
+
+## Questions for classmates
+
+1. Why does our productivity number seem so low?
+2. Do you think our calculations look correct for what minimum wage should be, increasing based off of productivity and inflation?
+3. Overall thoughts on our project?
 
 
 ## Data Gathering, Cleaning, Tidying
@@ -98,7 +119,7 @@ master_set
 
 ## Calculate Values
 
-```{r calculate-values, warning=FALSE, tibble.width=15 }
+```{r calculate values, warning=FALSE}
 
 # Calculate expected minimum wage based off inflation
 
@@ -110,7 +131,25 @@ for (i in seq(nrow(master_set))) {
   if (i == 1) {
     master_set$inflat_adj[i] <- master_set$`Minimum Wage`
   } else {
-    master_set$inflat_adj[i] <- (master_set$inflat_adj[i - 1]*master_set$ann_inflat[i]) + master_set$inflat_adj[i-1]
+    master_set$inflat_adj[i] <- (master_set$inflat_adj[i - 1]*master_set$ann_inflat[i]) + master_set$inflat_adj[i-1] } 
+}
+
+# Calculate expected minimum wage based off inflation 
+# This means that the minimum wage in 1948 is adjusted solely for inflation annually.
+# Does not reflect congress-updated minimum wage values.
+
+master_set_1 <- master_set
+
+master_set_1$ann_inflat <- (master_set_1$`Annual Inflation`) / 100
+
+master_set_1$inflat_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_1))) {
+  if (i == 1) {
+    master_set_1$inflat_adj[i] <- master_set_1$`Minimum Wage`
+  } else {
+    
+    master_set_1$inflat_adj[i] <- master_set_1$inflat_adj[i - 1]* (1 + master_set_1$ann_inflat[i])
     }
 }
       
@@ -129,6 +168,30 @@ for (i in seq(nrow(master_set))) {
     master_set$prod_adj[i] <- master_set$`Minimum Wage`
   } else {
     master_set$prod_adj[i] <- (master_set$prod_adj[i - 1]*master_set$net_prod_change[i]) + master_set$prod_adj[i-1]}
+}
+
+# This means that the minimum wage in 1948 is adjusted solely for productivity 
+# increases annually.
+# Does not reflect congress-updated minimum wage values.
+
+master_set_1 <- 
+  master_set_1 %>% 
+  mutate(net_prod_change = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
+
+master_set_1 <- 
+  master_set_1 %>% 
+  mutate(net_prod_change = (net_prod_change / 100))
+
+master_set_1$prod_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_1))) {
+  if (i == 1) {
+    master_set_1$prod_adj[i] <- master_set_1$`Minimum Wage`
+  } else {
+
+    master_set_1$prod_adj[i] <- master_set_1$prod_adj[i - 1]*(1 + master_set_1$net_prod_change[i])
+    }
+
 }
 
 
@@ -150,15 +213,46 @@ master_set <-
   select(-c(`Hourly Compensation`, `Annual Inflation`, `Net Productivity`))
 
 
-#Pivot the dataset to get ready for graph
+# This means that the minimum wage in 1948 is adjusted factoring in both inflation
+# and productivity increases annually.
+# Does not reflect congress-updated minimum wage values.
+
+master_set_1$net_impact <- master_set_1$ann_inflat + master_set_1$net_prod_change
+
+master_set_1$inflat_prod_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_1))) {
+  if (i == 1) {
+    master_set_1$inflat_prod_adj[i] <- master_set_1$`Minimum Wage`
+  } else {
+    master_set_1$inflat_prod_adj[i] <- (master_set_1$inflat_prod_adj[i - 1]*master_set_1$net_impact[i]) + master_set_1$inflat_prod_adj[i-1]} 
+}
+
 master_set_1 <- 
-  master_set %>%
+  master_set_1 %>% 
+  select(-c(`Hourly Compensation`, `Annual Inflation`, `Net Productivity`))
+
+
+#Pivot the dataset so that we can compare the following calculated minimum wage
+# values: 
+# (1) Actual minimum wage (Congress)
+# (2) Inflation minimum wage
+# (3) Productivity minimum wage
+# (4) Inflation and productivity minimum wage
+
+master_set_2 <- 
+  master_set_1 %>%
   pivot_longer(cols = c("Minimum Wage", inflat_adj, prod_adj, inflat_prod_adj),
                names_to = "Type",
                values_to = "Dollars")
 
+
 #If people want to see more, show in R Studio
 master_set_1
+
+#If people want to see more data, show in R Studio
+master_set_2
+
 
 ```
 
@@ -183,13 +277,13 @@ wage_theme <-
 ```
 
 
-```{r graph-values}
+```{r graph-values, fig.width=9}
 
 wage_values_graph <- 
-  master_set_1 %>% 
+  master_set_2 %>% 
   ggplot() +
   geom_path(aes(x = Year, y=Dollars, color= Type)) +
-  labs(title = "Disparity in Actual and Calculated Minimum Wage Changes") +
+  labs(title = "$ Disparity in Actual and Calculated Minimum Wage Changes") +
   wage_theme
 
 wage_values_graph
@@ -197,6 +291,61 @@ wage_values_graph
 ```
 
 
+
+## Other Calculations
+
+We also did this, focusing on percent difference rather than raw dollar amounts. Maybe this is right?
+
+```{r other-calculations, warnings = FALSE}
+
+master_set_3 <- master_set
+
+master_set_3$increase_act <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_3))) {
+  if (i == 1) {
+    master_set_3$increase_act[i] <- 0
+  } else {
+    master_set_3$increase_act[i] <- ((master_set_3$`Minimum Wage`[i] - master_set_3$`Minimum Wage`[i - 1])/master_set_3$`Minimum Wage`[i - 1])} 
+}
+
+master_set_3$accum_incr_calc <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_3))) {
+  if (i == 1) {
+    master_set_3$accum_incr_calc[i] <- 0
+  } else {
+    master_set_3$accum_incr_calc[i] <- ((master_set_3$net_impact[i] + master_set_3$accum_incr_calc[i - 1]))}
+}
+
+sum(master_set_3$accum_incr_calc)
+
+master_set_3$accum_incr_act <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set_3))) {
+  if (i == 1) {
+    master_set_3$accum_incr_act[i] <- 0
+  } else {
+    master_set_3$accum_incr_act[i] <- ((master_set_3$increase_act[i] + master_set_3$accum_incr_act[i - 1]))}
+}
+
+master_set_4 <- 
+  master_set_3 %>%
+  pivot_longer(cols = c(ann_inflat, net_prod_change, net_impact, accum_incr_calc, accum_incr_act),
+               names_to = "Increase Type",
+               values_to = "Increase Amount")
+
+master_set_4
+```
+
+# Graph
+
+```{r, fig.width=9}
+ggplot() +  
+  geom_path(data = master_set_4, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) +
+  labs(title = "% Disparity in Actual and Calculated Minimum Wage Changes") +
+  wage_theme
+```
 
 
 
