@@ -1,6 +1,6 @@
 ---
-title: "HuberMokate_20April2021_InClass"
-author: "Jane Huber"
+title: "In-Class Presentation"
+author: "Jane Huber & Meghan Mokate"
 date: "4/19/2021"
 output: html_document
 ---
@@ -34,7 +34,7 @@ This analysis will examine that claim through our own analysis of the numbers, l
 
 The US Bureau of Labor and Statistics (BLS) has tracked two key productivity measurements since 1948—a raw productivity rate (measuring output per hour) and a multifactor productivity rate (measuring output per unit of combined inputs) [https://www.bls.gov/bls/productivity.htm]. We will be using the raw productivity rate since we were able to access cleaned data 
 
-The value of inflation of the US dollar is important to factor in because it imbeds purchasing power of the dollar into what the minimum wage includes. For example, a study by Pew Research demonstrates that the minimum wage in 1973, $4.03/hr, has the same purchasing power of $23.68 in August 2018—more than three times the actual minimum wage [https://www.pewresearch.org/fact-tank/2018/08/07/for-most-us-workers-real-wages-have-barely-budged-for-decades/]. 
+The value of inflation of the US dollar is important to factor in because it imbeds purchasing power of the dollar into what the minimum wage includes. For example, a study by Pew Research demonstrates that the minimum wage in 1973, $4.03/hr, has the same purchasing power of $23.68 in August 2018—more than three times the actual minimum wage [https://www.pewresearch.org/fact-tank/2018/08/07/for-most-us-workers-real-wages-have-barely-budged-for-decades/].
 
 
 Citations:
@@ -46,6 +46,11 @@ https://democracyjournal.org/magazine/29/minimum-wage-catching-up-to-productivit
 https://www.nytimes.com/2020/06/18/business/coronavirus-minimum-wage-increase.html
 https://www.cnn.com/interactive/2019/business/us-minimum-wage-by-year/index.html
 
+## Questions for classmates
+
+1. Why does our productivity number seem so low?
+2. Do you think our calculations look correct for what minimum wage should be, increasing based off of productivity and inflation?
+3. Overall thoughts on our project?
 
 ## Data Gathering, Cleaning, Tidying
 
@@ -100,7 +105,9 @@ master_set
 
 ```{r calculate-values, warning=FALSE, tibble.width=15 }
 
-# Calculate expected minimum wage based off inflation
+# Calculate expected minimum wage based off inflation 
+# This means that the minimum wage in 1948 is adjusted solely for inflation annually.
+# Does not reflect congress-updated minimum wage values.
 
 master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
 
@@ -110,13 +117,18 @@ for (i in seq(nrow(master_set))) {
   if (i == 1) {
     master_set$inflat_adj[i] <- master_set$`Minimum Wage`
   } else {
-    master_set$inflat_adj[i] <- (master_set$inflat_adj[i - 1]*master_set$ann_inflat[i]) + master_set$inflat_adj[i-1]
+    
+    master_set$inflat_adj[i] <- master_set$inflat_adj[i - 1]* (1 + master_set$ann_inflat[i])
     }
 }
       
 # Calculate expected minimum wage based off productivity
+# This means that the minimum wage in 1948 is adjusted solely for productivity 
+# increases annually.
+# Does not reflect congress-updated minimum wage values.
 
-master_set <- master_set %>% 
+master_set <- 
+  master_set %>% 
   mutate(net_prod_change = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
 
 master_set <- master_set %>% 
@@ -128,11 +140,16 @@ for (i in seq(nrow(master_set))) {
   if (i == 1) {
     master_set$prod_adj[i] <- master_set$`Minimum Wage`
   } else {
-    master_set$prod_adj[i] <- (master_set$prod_adj[i - 1]*master_set$net_prod_change[i]) + master_set$prod_adj[i-1]}
+
+    master_set$prod_adj[i] <- master_set$prod_adj[i - 1]*(1 + master_set$net_prod_change[i])
+    }
 }
 
 
 # Calculate expected minimum wage based off inflation AND productivity
+# This means that the minimum wage in 1948 is adjusted factoring in both inflation
+# and productivity increases annually.
+# Does not reflect congress-updated minimum wage values.
 
 master_set$net_impact <- master_set$ann_inflat + master_set$net_prod_change
 
@@ -150,14 +167,20 @@ master_set <-
   select(-c(`Hourly Compensation`, `Annual Inflation`, `Net Productivity`))
 
 
-#Pivot the dataset to get ready for graph
+#Pivot the dataset so that we can compare the following calculated minimum wage
+# values: 
+# (1) Actual minimum wage (Congress)
+# (2) Inflation minimum wage
+# (3) Productivity minimum wage
+# (4) Inflation and productivity minimum wage
+
 master_set_1 <- 
   master_set %>%
   pivot_longer(cols = c("Minimum Wage", inflat_adj, prod_adj, inflat_prod_adj),
                names_to = "Type",
                values_to = "Dollars")
 
-#If people want to see more, show in R Studio
+#If people want to see more data, show in R Studio
 master_set_1
 
 ```

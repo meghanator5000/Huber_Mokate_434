@@ -394,7 +394,9 @@ summary {
 </div>
 <div id="calculate-values" class="section level2">
 <h2>Calculate Values</h2>
-<pre class="r"><code># Calculate expected minimum wage based off inflation
+<pre class="r"><code># Calculate expected minimum wage based off inflation 
+#This means that the minimum wage in 1948 is adjusted solely for inflation annually.
+#Does not reflect congress-updated minimum wage values.
 
 master_set$ann_inflat &lt;- (master_set$`Annual Inflation`) / 100
 
@@ -422,7 +424,10 @@ for (i in seq(nrow(master_set))) {
   if (i == 1) {
     master_set$prod_adj[i] &lt;- master_set$`Minimum Wage`
   } else {
-    master_set$prod_adj[i] &lt;- (master_set$prod_adj[i - 1]*master_set$net_prod_change[i]) + master_set$prod_adj[i-1]}
+#    master_set$prod_adj[i] &lt;- (master_set$prod_adj[i - 1]*master_set$net_prod_change[i]) + master_set$prod_adj[i-1]
+    
+    master_set$prod_adj[i] &lt;- master_set$prod_adj[i - 1]*(1 + master_set$net_prod_change[i])
+    }
 }
 
 
