@@ -33,8 +33,6 @@ We hope to examine how federal minimum wage in the United States has changed ove
 
 Ultimately, we hope to determine what minimum wage would have been in 2021 if it had risen according to both inflation and overall economic productivity.
 
-
-
 ```{r,include=FALSE}
 
 #Here, we gather and combine our datasets from three main sources.
@@ -153,15 +151,16 @@ wage_theme <-
     axis.text.x = element_text(angle = 90), 
     legend.title = element_text(size = 12, face = "bold", color = "seagreen"), 
     legend.text = element_text(size = 12, color = "navyblue")) 
-  #  plot.caption = element_text(color = "navyblue", size = 10))
 
 ```
 
 ```{r}
+#filter out non accum and add in inflation only
 ggplot() +
   geom_path(data = master_set_1, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) +
   labs(title = "Disparity in Actual and Calculated Minimum Wage Changes") +
   wage_theme
+
 ```
 # Preliminary Data Exploration
 
@@ -265,7 +264,6 @@ regress_set_c %>%
     geom_line() +
     scale_color_manual(values = c("avg_unemploy" = "seagreen", "pop_growth" = "royalblue4")) +
     wage_theme
-         
 ```
 
 ```{r}
@@ -322,7 +320,7 @@ summary(min_wage_regress)
 
 
 
-#```{r, warning=FALSE}
+```{r, warning=FALSE}
 
 # PROBABLY WILL NOT USE THIS!
 
@@ -359,6 +357,7 @@ for (i in seq(nrow(master_set))) {
 
 # Calculate expected minimum wage based off inflation AND productivity
 
+
 master_set$net_impact <- master_set$ann_inflat + master_set$net_prod_change
 
 master_set$inflat_prod_adj <- vector("numeric", 71)
@@ -370,7 +369,13 @@ for (i in seq(nrow(master_set))) {
     master_set$inflat_prod_adj[i] <- (master_set$inflat_prod_adj[i - 1]*master_set$net_impact[i]) + master_set$inflat_prod_adj[i-1]} 
 }
 
+<<<<<<< HEAD
+
+=======
+master_set
+
 ```
+>>>>>>> f199b70dce0bad412916d689325541927dc74025
 
 
 

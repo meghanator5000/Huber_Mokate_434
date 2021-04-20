@@ -83,7 +83,7 @@ Given inflation and productivity bump from previous year, minimum wage should ri
 
 test_set <- master_set
 
-test_set$prev_year_increase
+test_set$prev_year_increase <- vector("numeric", 71)
 
 for (i in 1:nrow(test_set)) {
   
