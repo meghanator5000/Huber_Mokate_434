@@ -150,16 +150,21 @@ master_set <-
   select(-c(`Hourly Compensation`, `Annual Inflation`, `Net Productivity`))
 
 
-#Pivot 
+#Pivot the dataset to get ready for graph
+master_set_1 <- 
+  master_set %>%
+  pivot_longer(cols = c("Minimum Wage", inflat_adj, prod_adj, inflat_prod_adj),
+               names_to = "Type",
+               values_to = "Dollars")
 
 #If people want to see more, show in R Studio
-master_set
+master_set_1
 
 ```
 
 ## Graph
 
-```{r-create-theme, include=FALSE}
+```{r create-theme, include=FALSE}
 
 wage_theme <-
   theme_minimal() + 
@@ -178,12 +183,14 @@ wage_theme <-
 ```
 
 
-```{r-graph-values}
+```{r graph-values}
 
 wage_values_graph <- 
-  master_set %>% 
+  master_set_1 %>% 
   ggplot() +
-  geom_line(aes(x = Year), data=c("Minimum Wage", inflat_adj, prod_adj, inflat_prod_adj))
+  geom_path(aes(x = Year, y=Dollars, color= Type)) +
+  labs(title = "Disparity in Actual and Calculated Minimum Wage Changes") +
+  wage_theme
 
 wage_values_graph
 
