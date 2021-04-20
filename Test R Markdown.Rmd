@@ -322,7 +322,7 @@ summary(min_wage_regress)
 
 
 
-#```{r, warning=FALSE}
+```{r, warning=FALSE}
 
 # PROBABLY WILL NOT USE THIS!
 
@@ -369,6 +369,8 @@ for (i in seq(nrow(master_set))) {
   } else {
     master_set$inflat_prod_adj[i] <- (master_set$inflat_prod_adj[i - 1]*master_set$net_impact[i]) + master_set$inflat_prod_adj[i-1]} 
 }
+
+master_set
 
 ```
 
