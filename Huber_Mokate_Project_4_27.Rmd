@@ -5,7 +5,7 @@ date: "4/21/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -50,7 +50,7 @@ https://www.cnn.com/interactive/2019/business/us-minimum-wage-by-year/index.html
 
 # Import Libraries
 
-```{r cars}
+```{r import-libraries, include=FALSE}
 
 library(tidyverse) 
 library(rvest)
@@ -59,12 +59,12 @@ library(tinytex)
 library(haven) # may use for regression / regression line
 library(splitstackshape) # for cSplit
 library(knitr)
-library(blscrapeR) # to complete inflation-related calculations 
+library(blscrapeR) # to request inflation calculations from BLS' API and complete inflation-related calculations 
 ```
 
 ## Data Gathering, Cleaning, Tidying
 
-```{r pressure, echo=FALSE}
+```{r gather-data, echo=FALSE}
 #Here, we gather and combine our datasets from three main sources.
 #Source: https://www.epi.org/productivity-pay-gap/
 hourly_comp_net_prod_tb <- read_csv("Data_HourlyCompensation_NetProd.csv")
@@ -106,13 +106,18 @@ master_set
 
 ```
 
+todo: jane. I think it might be a 20 year limit, not ten year limit.
+Might be worth cleaning up, but this isn't a big deal. Also might be
+valuable to get a data access key from BLS
 
+Useful Q & A about what CPI is and how to interpret:
+https://www.bls.gov/cpi/questions-and-answers.htm#Question_15
 ```{r get-inflation-data}
 
 # Get "seriesId" from BLS website.This refers to the CPI for all items
 # for urban consumers, which is considered the standard for economic
 # analysis.
-
+# 
 # bls_seriesid <- "CUSR0000SA0"
 # 
 # # BLS API only allows for 10 years of data to be gathered at a time.
@@ -126,15 +131,17 @@ master_set
 # start_year <- 1948
 # end_year <- 1957
 # 
-# inflation_tb
+# 
+# # Declare inflation_dataset in Global context, update in for-loop
+# inflation_dataset
 # 
 # for (i in 1:num_decades) {
-#   
+# 
 #   if (i != 1) {
-#     
+# 
 #     start_year <- end_year + 1
 #     end_year <- start_year + 9
-#     
+# 
 #     if (as.numeric(end_year) > 2018) {
 #       #This is the final year that we want in the dataset.
 #       end_year <- 2018
@@ -144,23 +151,34 @@ master_set
 #   print(start_year)
 #   print(end_year)
 # 
-#   decade_tb <- bls_api(seriesid = bls_seriesid,
-#                                startyear = as.character(start_year),
-#                                endyear = as.character(end_year))
-# 
+#   decade_dataset <- bls_api(seriesid = bls_seriesid,
+#                        startyear = as.character(start_year),
+#                        endyear = as.character(end_year),
+#                        annualaverage=TRUE)
 #   if (i != 1) {
-#     inflation_tb <- bind_rows(inflation_tb, decade_tb)
+#     inflation_dataset <- bind_rows(inflation_dataset, decade_dataset)
 #   } else {
-#     inflation_tb <- decade_tb
+#     inflation_dataset <- decade_dataset
 #   }
 # }
 
-# write_csv(inflation_tb, "Inflation_Dataset")
+# write_csv(inflation_dataset, "Inflation_Dataset")
 
 inflation_dataset <- read_csv("Inflation_Dataset")
 
 ```
 
+```{r clean-inflation-data}
+
+annual_cpi_tb <- 
+  inflation_dataset %>% 
+  group_by(year) %>% 
+  summarize(avg_annual_cpi = mean(value)) %>% 
+  mutate()
+
+annual_cpi_tb
+
+```
 
 
 ## Calculate Values
@@ -174,6 +192,18 @@ Convert all Minimum Wage dollar values to 2018 dollars
 
 # Step 3: Convert Minimum Wage dollar values to 2018
 
+# The API will determine the percent increase from a dollar in
+# 1948 (our starting year). We then use that percentage to determine
+# what our starting value should be for our minimum wage datasets.
+
+# Only run this when need to; is an API request
+#converted_1948_min_wage <- inflation_adjust(1948)
+
+converted_1948_min_wage_2018 <- 
+  converted_1948_min_wage %>% 
+  filter(year == "2018")
+
+starting_minwage_value_2018_dollars <- (.4) * (10.4)
 
 
 ```
