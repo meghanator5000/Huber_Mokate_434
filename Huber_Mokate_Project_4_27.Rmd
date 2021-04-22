@@ -106,12 +106,73 @@ master_set
 
 ```
 
+
+```{r get-inflation-data}
+
+# Get "seriesId" from BLS website.This refers to the CPI for all items
+# for urban consumers, which is considered the standard for economic
+# analysis.
+
+# bls_seriesid <- "CUSR0000SA0"
+# 
+# # BLS API only allows for 10 years of data to be gathered at a time.
+# # Therefore, calculate the number of iterations through a for loop
+# # needed to capture all data.
+# 
+# num_decades <- round((2018 - 1948) / 10) + 1
+# 
+# # Set initial values for start and end year. In the for loop, we will update
+# # these values after gathering the data.
+# start_year <- 1948
+# end_year <- 1957
+# 
+# inflation_tb
+# 
+# for (i in 1:num_decades) {
+#   
+#   if (i != 1) {
+#     
+#     start_year <- end_year + 1
+#     end_year <- start_year + 9
+#     
+#     if (as.numeric(end_year) > 2018) {
+#       #This is the final year that we want in the dataset.
+#       end_year <- 2018
+#     }
+#   }
+# 
+#   print(start_year)
+#   print(end_year)
+# 
+#   decade_tb <- bls_api(seriesid = bls_seriesid,
+#                                startyear = as.character(start_year),
+#                                endyear = as.character(end_year))
+# 
+#   if (i != 1) {
+#     inflation_tb <- bind_rows(inflation_tb, decade_tb)
+#   } else {
+#     inflation_tb <- decade_tb
+#   }
+# }
+
+# write_csv(inflation_tb, "Inflation_Dataset")
+
+inflation_dataset <- read_csv("Inflation_Dataset")
+
+```
+
+
+
 ## Calculate Values
 
 Convert all Minimum Wage dollar values to 2018 dollars
 ```{r}
-# start by putting our base year 
-# $ amount CPI / year_0 CPI
+
+
+
+# Step 2: Create a column for annual inflation that uses the formula from BLS
+
+# Step 3: Convert Minimum Wage dollar values to 2018
 
 
 
