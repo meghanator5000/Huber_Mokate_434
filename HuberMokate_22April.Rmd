@@ -1,0 +1,209 @@
+---
+title: "HuberMokate_22April"
+author: "Jane Huber"
+date: "4/22/2021"
+output: html_document
+---
+
+The point of this document is to share our work with Alea/Prof Fusi.
+Contains our work, not much more.
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse) 
+library(rvest)
+library(janitor)
+library(tinytex)
+library(haven) # may use for regression / regression line (may not)
+library(splitstackshape) # for cSplit
+library(knitr)
+library(extrafont)
+library(blscrapeR) # to gather and complete inflation-related calculations 
+library(lubridate) # to help clean date representations
+```
+
+## Gather and clean original data
+
+```{r gather-clean-productivity-data}
+
+#Source: https://www.epi.org/productivity-pay-gap/
+net_productivity_dataset <- read_csv("Data_HourlyCompensation_NetProd.csv")
+
+net_productivity_dataset <- 
+  net_productivity_dataset %>% 
+  select(Year, `Net Productivity`) %>% 
+  transmute(year = Year,
+            net_productivity = `Net Productivity`)
+
+```
+
+
+```{r gather-clean-minimum-wage}
+#Source: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
+min_wage_dataset <- read_csv("FederalMinimumWage.csv")
+
+min_wage_dataset <- 
+  min_wage_dataset %>% 
+  transmute(year = as.numeric(format(as.Date(mdy(effective_date)), "%Y")),
+            raw_min_wage = 
+              as.numeric(str_replace_all(fed_min_wage, "\\$", "")))
+
+# min_wage_dataset %>% 
+#   complete(year)
+
+# Transmute year, we have to do some work to parse out the year value
+# Transmute raw_min_wage, we want to remove the $ sign.
+
+# NOTE: At this point, the minimum wage dataset only contains years in which
+# the minimum wage was adjusted by Congress. We will address this as we
+# combine datasets.
+
+```
+
+Useful Q & A about what CPI is and how to interpret:
+https://www.bls.gov/cpi/questions-and-answers.htm#Question_15
+```{r gather-clean-cpi-data}
+
+# Get "seriesId" from BLS website.This refers to the CPI for all items
+# for urban consumers, which is considered the standard for economic
+# analysis.
+# 
+# bls_seriesid <- "CUSR0000SA0"
+# 
+# # BLS API only allows for 10 years of data to be gathered at a time.
+# # Therefore, calculate the number of iterations through a for loop
+# # needed to capture all data.
+# 
+# num_decades <- round((2018 - 1948) / 10) + 1
+# 
+# # Set initial values for start and end year. In the for loop, we will update
+# # these values after gathering the data.
+# start_year <- 1948
+# end_year <- 1957
+# 
+# 
+# # Declare inflation_dataset in Global context, update in for-loop
+# inflation_dataset
+# 
+# for (i in 1:num_decades) {
+# 
+#   if (i != 1) {
+# 
+#     start_year <- end_year + 1
+#     end_year <- start_year + 9
+# 
+#     if (as.numeric(end_year) > 2018) {
+#       #This is the final year that we want in the dataset.
+#       end_year <- 2018
+#     }
+#   }
+# 
+#   print(start_year)
+#   print(end_year)
+# 
+#   decade_dataset <- bls_api(seriesid = bls_seriesid,
+#                        startyear = as.character(start_year),
+#                        endyear = as.character(end_year),
+#                        annualaverage=TRUE)
+#   if (i != 1) {
+#     inflation_dataset <- bind_rows(inflation_dataset, decade_dataset)
+#   } else {
+#     inflation_dataset <- decade_dataset
+#   }
+# }
+
+# write_csv(inflation_dataset, "Inflation_Dataset")
+
+inflation_dataset <- read_csv("Inflation_Dataset")
+
+# The BLS provides us with monthly CPI values for every year since 1948. We 
+# need to average these values to create an annual CPI value.
+
+inflation_dataset <- 
+  inflation_dataset %>% 
+  group_by(year) %>% 
+  summarize(annual_avg_cpi = mean(value))
+
+# Note: In order to calculate inflation between two years, we will use the
+# following formula (source: BLS):
+#   inflation = ((SecondPeriodCPI - PreviousPeriodCPI) / PreviousPeriodCPI)
+
+```
+
+## Combine and Clean Data
+
+```{r combine-datasets}
+
+#First, combine inflation and min_wage datasets
+main_dataset <- 
+  left_join(inflation_dataset, min_wage_dataset, by = "year")
+  
+
+#Now, add in the net productivity
+main_dataset <- 
+  left_join(main_dataset, net_productivity_dataset, by = "year")
+
+```
+
+```{r tidy-main_dataset}
+
+main_dataset <- 
+  main_dataset %>% 
+  fill(raw_min_wage, .direction = "down") 
+
+
+# In 1948, the minimum wage was $.40. Since our current method of filling in NA
+# values, relies on that value, 
+main_dataset$raw_min_wage <- 
+  replace_na(main_dataset$raw_min_wage,  0.4) #How can we get this to work 
+# in the pipes?
+
+```
+
+```{r convert-dollars-to-2018-dollars}
+
+# Here, we want to convert all dollar amounts in our dataset to 2018 dollars.
+# This will make all the values more readable to our audience.
+
+#We will use a for-loop to calculate all minimum wage values in 2018 dollars.
+
+#We use the inflation information we have!
+
+
+
+main_dataset$min_wage_2018_adjusted <- vector("numeric", nrow(main_dataset))
+
+for (i in 1:nrow(main_dataset)) {
+ 
+   val <- inflation_adjust(main_dataset$year[1])
+   val1 <- val
+   
+   val1 %>% 
+     filter(year == 2018) %>% 
+     select(adj_value) 
+                          
+                          
+  #   inflation_adjust(main_dataset$year[1]) %>% 
+  # filter(year == "2018") %>% 
+  # print(as.character(main_dataset$min_wage_2018_adjusted[1]))
+  
+  
+  
+  # main_dataset$min_wage_2018_adjusted[1] <- 
+  # inflation_adjust(main_dataset$year[1]) %>% 
+  # filter(year == "2018")
+  # print(as.character(main_dataset$min_wage_2018_adjusted[1]))
+
+     
+}
+
+
+
+```
+
+
+
+
+
+
