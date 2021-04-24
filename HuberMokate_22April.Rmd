@@ -160,7 +160,26 @@ main_dataset$raw_min_wage <-
 
 ```
 
-```{r convert-dollars-to-2018-dollars}
+```{r calculate-year-to-year-productivity-gains}
+
+main_dataset$perc_inc_prod <- vector("numeric", nrow(main_dataset))
+
+for (i in 1:nrow(main_dataset)) {
+  
+  perc_inc <- ifelse(i==1, 
+                     1,
+                     (main_dataset$net_productivity[i] /
+                        main_dataset$net_productivity[i-1]))
+  
+  main_dataset$perc_inc_prod[i] <- perc_inc
+  
+}
+
+```
+
+## Create calculations
+
+```{r convert-minwage-to-2018-dollars}
 
 # Here, we want to convert all dollar amounts in our dataset to 2018 dollars.
 # This will make all the values more readable to our audience.
@@ -189,8 +208,71 @@ for (i in 1:nrow(main_dataset)) {
 
 ```
 
+```{r calculate_productivity-minwage}
+
+# Now that minimum wage is in 2018 dollars, we multiple it by raw percentages
+# to get the productivity-and-inflation-based minimum wage. All is in 2018
+# dollars.
+
+main_dataset$min_wage_prod_adjusted <- vector("numeric", nrow(main_dataset))
+
+for (i in 1:nrow(main_dataset)) {
+  
+  main_dataset$min_wage_prod_adjusted[i] <- 
+    main_dataset$min_wage_2018_adjusted[i] * main_dataset$perc_inc_prod[i]
+  
+}
+
+```
 
 
+## Graph
 
 
+```{r update-dataset-only-necessary-columns}
+
+# Maybe here, we can remove unnecessary stuff
+
+main_dataset_final <- 
+  main_dataset %>%
+  select(year, raw_min_wage, min_wage_2018_adjusted, min_wage_prod_adjusted) %>% 
+  pivot_longer(cols = c(raw_min_wage, 
+                        min_wage_2018_adjusted,
+                        min_wage_prod_adjusted),
+               names_to = "Type",
+               values_to = "Dollars")
+
+```
+
+
+Create a theme
+```{r create-theme}
+wage_theme <-
+  theme_minimal() + 
+  theme(
+    # text = element_text(family = "Georgia"), 
+    plot.title = element_text(face = "bold", size = 16, color = "seagreen"), 
+    plot.subtitle = element_text(face = "italic", size = 14, color = "royalblue4"), 
+    axis.title = element_text(size = 14, face = "bold", color = "seagreen"), 
+    axis.text = element_text(size = 12, color = "navyblue"), 
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(), 
+    axis.text.x = element_text(angle = 90), 
+    legend.title = element_text(size = 12, face = "bold", color = "seagreen"), 
+    legend.text = element_text(size = 12, color = "navyblue")) 
+```
+
+
+```{r create-graph-comparing-min-wages}
+
+wage_values_graph <- 
+  main_dataset_final %>% 
+  ggplot() +
+  geom_path(aes(x = year, y=Dollars, color= Type)) +
+  labs(title = "$ Disparity in Actual and Calculated Minimum Wage Changes") +
+  wage_theme
+
+wage_values_graph
+
+```
 
