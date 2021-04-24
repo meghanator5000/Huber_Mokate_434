@@ -38,7 +38,6 @@ net_productivity_dataset <-
 
 ```
 
-
 ```{r gather-clean-minimum-wage}
 #Source: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
 min_wage_dataset <- read_csv("FederalMinimumWage.csv")
@@ -166,39 +165,27 @@ main_dataset$raw_min_wage <-
 # Here, we want to convert all dollar amounts in our dataset to 2018 dollars.
 # This will make all the values more readable to our audience.
 
-#We will use a for-loop to calculate all minimum wage values in 2018 dollars.
-
-#We use the inflation information we have!
-
-
-
 main_dataset$min_wage_2018_adjusted <- vector("numeric", nrow(main_dataset))
 
+cpi_for_2018 <- main_dataset[[71,2]]
+
 for (i in 1:nrow(main_dataset)) {
- 
-   val <- inflation_adjust(main_dataset$year[1])
-   val1 <- val
-   
-   val1 %>% 
-     filter(year == 2018) %>% 
-     select(adj_value) 
-                          
-                          
-  #   inflation_adjust(main_dataset$year[1]) %>% 
-  # filter(year == "2018") %>% 
-  # print(as.character(main_dataset$min_wage_2018_adjusted[1]))
-  
-  
-  
-  # main_dataset$min_wage_2018_adjusted[1] <- 
-  # inflation_adjust(main_dataset$year[1]) %>% 
-  # filter(year == "2018")
-  # print(as.character(main_dataset$min_wage_2018_adjusted[1]))
 
-     
+  cpi_for_year <- main_dataset$annual_avg_cpi[i]
+
+  # Get previous minimum wage value, which we will then multiply
+  # by the inflation percentage between the two years.
+  base_min_wage_for_year <- ifelse(i == 1,
+                                   main_dataset$raw_min_wage[i],
+                                   main_dataset$min_wage_2018_adjusted[i-1])
+  
+  # We use the formula to get inflation and turn it into a decimal.
+  inflation_rate <- 1 + (((cpi_for_2018 - cpi_for_year) / cpi_for_year) /100)
+  
+  # Multiply the base minimum wage rate (what it was in previous year) by
+  # the inflation rate to get an inflation-adjusted value.
+  main_dataset$min_wage_2018_adjusted[i] <- inflation_rate * base_min_wage_for_year
 }
-
-
 
 ```
 
