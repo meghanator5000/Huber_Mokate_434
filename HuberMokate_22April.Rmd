@@ -160,24 +160,35 @@ main_dataset$raw_min_wage <-
 
 ```
 
+Issue:
+Not sure if this multiplier is the right approach. The aim is to capture 
+productivity increase and factor that in to value of minimum wage.
+
 ```{r calculate-year-to-year-productivity-gains}
 
-main_dataset$perc_inc_prod <- vector("numeric", nrow(main_dataset))
+main_dataset$prod_multiplier <- vector("numeric", nrow(main_dataset))
 
 for (i in 1:nrow(main_dataset)) {
   
-  perc_inc <- ifelse(i==1, 
-                     1,
-                     (main_dataset$net_productivity[i] /
-                        main_dataset$net_productivity[i-1]))
+  if (i == 1) {
+    multiplier <- 1
+  } else if (i == 2) {
+    multiplier <- main_dataset$net_productivity[i]
+  } else {
+    multiplier <- main_dataset$net_productivity[i] /
+                        main_dataset$net_productivity[i-1]
+  }
   
-  main_dataset$perc_inc_prod[i] <- perc_inc
+  main_dataset$prod_multiplier[i] <- multiplier
   
 }
 
 ```
 
 ## Create calculations
+
+Issue: We are using the inflation formula, but the data still doesn't seem right.
+Things should start at ~$4, I expect it to go up to like $13.
 
 ```{r convert-minwage-to-2018-dollars}
 
@@ -198,12 +209,26 @@ for (i in 1:nrow(main_dataset)) {
                                    main_dataset$raw_min_wage[i],
                                    main_dataset$min_wage_2018_adjusted[i-1])
   
+  
+  if (i == 1) {
   # We use the formula to get inflation and turn it into a decimal.
-  inflation_rate <- 1 + (((cpi_for_2018 - cpi_for_year) / cpi_for_year) /100)
+  # Formula: (CPIx+1 – CPIx ) / CPIx, where:
+  # CPIx is Consumer Price Index of Initial Year
+  
+  inflation_rate <- ((cpi_for_2018 - cpi_for_year) / cpi_for_year)
   
   # Multiply the base minimum wage rate (what it was in previous year) by
   # the inflation rate to get an inflation-adjusted value.
   main_dataset$min_wage_2018_adjusted[i] <- inflation_rate * base_min_wage_for_year
+  } else {
+  
+    perc_cpi_increase_year_over_year <- cpi_for_year /
+      main_dataset$annual_avg_cpi[i - 1]
+    
+    main_dataset$min_wage_2018_adjusted[i] <- perc_cpi_increase_year_over_year *
+      base_min_wage_for_year
+    
+  }
 }
 
 ```
@@ -217,9 +242,13 @@ for (i in 1:nrow(main_dataset)) {
 main_dataset$min_wage_prod_adjusted <- vector("numeric", nrow(main_dataset))
 
 for (i in 1:nrow(main_dataset)) {
+
+  base_amount <- ifelse(i==1, 
+                        main_dataset$min_wage_2018_adjusted[1],
+                        main_dataset$min_wage_prod_adjusted[i-1])
   
   main_dataset$min_wage_prod_adjusted[i] <- 
-    main_dataset$min_wage_2018_adjusted[i] * main_dataset$perc_inc_prod[i]
+    base_amount * main_dataset$prod_multiplier[i]
   
 }
 
