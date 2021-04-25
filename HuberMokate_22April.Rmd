@@ -305,3 +305,171 @@ wage_values_graph
 
 ```
 
+
+
+# PART TWO - IMPACTFUL FACTORS
+
+## Regression Datasets and Analysis
+
+Create dummy variable for when there was a change in minimum wage
+```{r}
+regress_set <- master_set %>%
+  mutate(change = ifelse(increase_act == 0, 0, 1))
+```
+
+## Add in regression datasets: 
+(1) unemployment rate
+(2) president / party
+(3) population / population growth
+
+Unemployment dataset; source: https://data.bls.gov/pdq/SurveyOutputServlet
+```{r}
+unemploy <- read_csv('unemploy.csv') %>%
+  row_to_names(row_number = 11) %>% # make values in row 11 the column titles
+  mutate_if(is.character,as.numeric) %>% #change all values to numeric
+  rowwise() %>% # prepare to take mean of values
+  mutate(avg_unemploy = mean(c_across(2:13))) %>% # create column of mean to get avg_unemploy
+  select(1, 14) %>% # select only year and average column
+  mutate(avg_unemploy = (avg_unemploy / 100)) # make this into a percentage
+
+regress_set_a <- left_join(regress_set, unemploy, by="Year") # add to dataset
+regress_set_a
+```
+
+Presidential party for each year dataset; source: https://github.com/awhstin/Dataset-List/blob/master/presidents.csv
+```{r}
+presidents <- read_csv('presidents.csv') %>%
+  cSplit("President Name,Years In Office,Number,Party", ",") %>% # split values into separate columns
+  rename(president = "President Name,Years In Office,Number,Party_1", # rename columns
+         years = "President Name,Years In Office,Number,Party_2",
+         number = "President Name,Years In Office,Number,Party_3",
+         party = "President Name,Years In Office,Number,Party_4") %>%
+  separate(years, c("start_year", "end_year"), sep = "-") %>% # separate years values
+  mutate(end_year = ifelse(president == "William H. Harrison", 1841, end_year)) %>% # fill in some misc missing values 
+  mutate(end_year = ifelse(president == "Donald Trump", 2021, end_year)) %>%
+  pivot_longer(cols = c(start_year, end_year), # pivot so that years are a column
+               names_to = "start_end",
+               values_to = "Year",
+               values_transform = list("Year"=as.numeric)) %>%
+  select(1, 3, 5) # select only rows we want
+
+regress_set_b <- left_join(regress_set_a, presidents, by="Year") # add to dataset
+regress_set_b
+
+regress_set_b_1 <- regress_set_b %>% 
+  fill(president, .direction = "up") %>%
+  fill(party, .direction = "up") # ensure that all years have party and president values, not just start and end years
+ 
+regress_set_b_2 <- regress_set_b_1 %>%
+  fill(president, .direction = "down") %>% 
+  fill(party, .direction = "down") # fill in where values are missing since no end year
+regress_set_b_2
+ 
+regress_set_b_2 <- regress_set_b_2[!duplicated(regress_set_b_2$Year, fromLast = T), ] # clear out any duplicated years by taking the last value of that year 
+```
+
+Add in population dataset; source: https://usafacts.org/data/topics/people-society/population-and-demographics/population-data/population/#chart-12818-0
+ 
+```{r} 
+population_source <- read_csv('population_usafacts.csv')
+
+population <- population_source %>%
+  filter(Years == "Population (People)") %>% # choose only population metric
+  select(50:122) %>% # select only the years we are looking at
+  pivot_longer(1:73, 
+               names_to = "Year",
+               values_to = "population",
+               names_transform = list("Year"=as.numeric)) # pivot so that year is a column
+
+regress_set_c <- left_join(regress_set_b_2, population, by="Year") # add to dataset
+regress_set_c
+``` 
+
+Calculate population growth percentage
+```{r}
+regress_set_c$pop_growth <- vector("numeric", 71)
+
+for (i in seq(nrow(regress_set_c))) {
+  if (i == 1) {
+    regress_set_c$pop_growth[i] <- 0
+  } else {
+    regress_set_c$pop_growth[i] <- ((regress_set_c$population[i] - regress_set_c$population[i - 1])/regress_set_c$population[i - 1])}
+} 
+```
+
+# Exploratory Graphs
+
+################# NOTES #################
+consider: how to add in change years to identify possible trends??
+most everything else is a year to year change except unemployment which is just a percentage...is this important?
+add interpretations
+Regression:
+need to go back and review approaches to this
+need to add logs???
+#########################################
+
+Alea: do you have tips on how to explore or present these things? I feel like there is potential for some fun visuals here, but want to make sure they are meaningful and relevant before going in too deep
+
+Changes in minimum wage and average unemployment / population growth 
+```{r}
+regress_set_c %>%
+  pivot_longer(cols = c(pop_growth, avg_unemploy),
+                        names_to = "metric",
+                        values_to = "values") %>%
+  ggplot(aes(x = Year, y = values, group = metric, color = metric)) + 
+    geom_line() +
+    scale_color_manual(values = c("avg_unemploy" = "seagreen", "pop_growth" = "royalblue4")) +
+    wage_theme
+```
+
+Changes in minimum wage and political party in power
+```{r}
+ggplot(regress_set_c, aes(x = Year, y = change, fill = party)) +
+  geom_col() +
+  scale_fill_manual(values = c("Democratic" = "seagreen", "Republican" = "royalblue4")) +
+  wage_theme
+         
+# There seems to be no relationship between party and changes in minimum wage
+```
+
+Changes in minimum wage and unemployment
+```{r}
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot(aes(x = Year, y = avg_unemploy, fill = change)) + 
+    geom_col() +
+    scale_fill_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+```
+
+Fancy regression
+```{r}
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot() +
+    aes(x = Year, y = avg_unemploy, group = change, color = change) +
+    geom_point(color = "grey") +
+    geom_smooth(method = "lm") +
+    scale_color_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+         
+``` 
+
+Changes in minimum wage and population
+```{r}
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot(aes(x = Year, y = pop_growth, fill = change)) + 
+    geom_col() +
+    scale_fill_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+         
+``` 
+
+Regression attempt (come back to)
+```{r}
+min_wage_regress <- lm(data = regress_set_c, change ~ avg_unemploy + party + pop_growth)
+summary(min_wage_regress)
+```
+
+
