@@ -1,0 +1,389 @@
+---
+title: "The Relationship between Productivity and Minimum Wage from 1948 to 2018"
+author: "Jane Huber & Meghan Mokate"
+date: "3/23/2021"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+#May need to install:
+#tinytex::install_tinytex()
+#install.packages("janitor")
+
+
+#Import libraries
+library(tidyverse) 
+library(rvest)
+library(janitor)
+library(tinytex)
+library(haven) # may use for regression / regression line
+library(splitstackshape) # for cSplit
+```
+# Introduction
+The US currently faces rising inequality, stagnating wages, and an ongoing debate around the federal minimum wage. This analysis seeks to join that conversation by examining the relationship between the federal minimum wage, inflation, and economic productivity. We feel that this research could indicate how appropriate or inappropriate the current federal minimum wage is in order to inform opinions regarding the wage increase discussions. By considering minimum wage changes over time, we can reflect on past policy, determine trends in context, and assess the validity of a case to increase minimum wage in the United States in the present day.
+
+We hope to examine how federal minimum wage in the United States has changed over time in relation to productivity and inflation, examining available data from 1948-2018. Specifically, we would like to assess what the expected minimum wage would be over time if it were consistently adjusted for inflation and increased according to productivity gains. We will compare this to what the actual minimum wage was year to year. 
+
+Ultimately, we hope to determine what minimum wage would have been in 2021 if it had risen according to both inflation and overall economic productivity.
+
+```{r,include=FALSE}
+
+#Here, we gather and combine our datasets from three main sources.
+
+#Source: https://www.epi.org/productivity-pay-gap/
+hourly_comp_net_prod_tb <- read_csv("Data_HourlyCompensation_NetProd.csv")
+
+
+#Source: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
+min_wage_tb <- read_csv("Data_Year_Minwage.csv")
+
+#Combine avg hourly compensation and net productivity datasets
+total_minwage_comp_prod <- left_join(hourly_comp_net_prod_tb, min_wage_tb, by="Year")
+
+#Fill in the federal minimum wage value; the original dataset only included information on when a law was passed to increase the federal minimum wage. Therefore, we need to fill in, year-by-year, what that value was.
+total_minwage_comp_prod_r <- 
+  total_minwage_comp_prod %>%
+  fill(`Minimum Wage`, .direction = "down") 
+total_minwage_comp_prod_r
+
+# the 1948 and 1949 values of .40 were excluded, so add these in
+total_minwage_comp_prod_r$`Minimum Wage`[is.na(total_minwage_comp_prod_r$`Minimum Wage`)] <- .40
+
+
+#Retrieve data on annual inflation by scraping the USInflationCalculator website.
+inflation_data_url <- "https://www.usinflationcalculator.com/inflation/consumer-price-index-and-annual-percent-changes-from-1913-to-2008/"
+inflation_source <- inflation_data_url %>%
+  html() %>%
+  html_nodes(xpath='//*[@id="post-17"]/div/div[1]/table') %>%
+  html_table()
+
+inflation_source_1 <- inflation_source[[1]]
+
+#Here, we create an annual inflation dataset by cleaning the data retrieved from the website.
+inflation <- inflation_source_1 %>%
+  row_to_names(row_number = 2) %>%
+  select(1, 16) %>%
+  rename("Annual Inflation" = 2) %>%
+  mutate(Year = as.double(Year), `Annual Inflation` = as.double(`Annual Inflation`))
+inflation
+
+#Finally, combine all datasets by year to create a master dataset that we will use for our full analysis
+master_set <- left_join(total_minwage_comp_prod_r, inflation, by="Year")
+master_set
+
+```
+
+```{r, warnings = FALSE}
+master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
+
+master_set$`Net Productivity Change` <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$`Net Productivity Change`[i] <- 0
+  } else {
+    master_set$`Net Productivity Change`[i] <- ((master_set$`Net Productivity`[i] - master_set$`Net Productivity`[i - 1]))}
+}
+
+master_set <- master_set %>% 
+  mutate(`Net Productivity Change` = (`Net Productivity Change` / 100))
+
+master_set$increase_calc <- master_set$ann_inflat + master_set$`Net Productivity Change`
+
+master_set$increase_act <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$increase_act[i] <- 0
+  } else {
+    master_set$increase_act[i] <- ((master_set$`Minimum Wage`[i] - master_set$`Minimum Wage`[i - 1])/master_set$`Minimum Wage`[i - 1])} # CHECK THIS FORMULA
+}
+
+master_set$incr_diff <- master_set$increase_calc - master_set$increase_act
+
+master_set$accum_incr_calc <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$accum_incr_calc[i] <- 0
+  } else {
+    master_set$accum_incr_calc[i] <- ((master_set$increase_calc[i] + master_set$accum_incr_calc[i - 1]))}
+}
+
+master_set$accum_incr_act <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$accum_incr_act[i] <- 0
+  } else {
+    master_set$accum_incr_act[i] <- ((master_set$increase_act[i] + master_set$accum_incr_act[i - 1]))}
+}
+
+master_set_1 <- master_set %>%
+  pivot_longer(cols = c(increase_calc, increase_act, accum_incr_act, accum_incr_calc),
+               names_to = "Increase Type",
+               values_to = "Increase Amount")
+```
+
+## Create a Theme
+```{r}
+
+# feel free to edit this however! just thought I'd throw in a theme draft
+# colors are probably too similar
+
+wage_theme <-
+  theme_minimal() + 
+  theme(
+    text = element_text(family = "Georgia"), 
+    plot.title = element_text(face = "bold", size = 16, color = "seagreen"), 
+    plot.subtitle = element_text(face = "italic", size = 14, color = "royalblue4"), 
+    axis.title = element_text(size = 14, face = "bold", color = "seagreen"), 
+    axis.text = element_text(size = 12, color = "navyblue"), 
+    axis.line = element_blank(), 
+    axis.ticks = element_blank(), 
+    axis.text.x = element_text(angle = 90), 
+    legend.title = element_text(size = 12, face = "bold", color = "seagreen"), 
+    legend.text = element_text(size = 12, color = "navyblue")) 
+
+```
+
+```{r}
+#filter out non accum and add in inflation only
+ggplot() +
+  geom_path(data = master_set_1, aes(x = Year, y = `Increase Amount`, color = `Increase Type`)) +
+  labs(title = "Disparity in Actual and Calculated Minimum Wage Changes") +
+  wage_theme
+
+```
+# Preliminary Data Exploration
+
+Before conducting our formal analysis, we will begin by looking through through the basic statistics of our data and get a sense of how things are looking.
+
+*to complete*
+
+
+# Regression Datasets and Analysis
+```{r}
+# Add in regression datasets
+
+# Create dummy variable for when there was a change in minimum wage
+regress_set <- master_set %>%
+  mutate(change = ifelse(increase_act == 0, 0, 1))
+
+
+# Unemployment dataset; source: https://data.bls.gov/pdq/SurveyOutputServlet
+unemploy <- read_csv('unemploy.csv') %>%
+  row_to_names(row_number = 11) %>%
+  mutate_if(is.character,as.numeric) %>%
+  rowwise() %>%
+  mutate(avg_unemploy = mean(c_across(2:13))) %>%
+  select(1, 14) %>%
+  mutate(avg_unemploy = (avg_unemploy / 100))
+unemploy
+
+regress_set_a <- left_join(regress_set, unemploy, by="Year")
+regress_set_a
+
+# Presidential party for each year dataset; source: https://github.com/awhstin/Dataset-List/blob/master/presidents.csv
+
+presidents <- read_csv('presidents.csv') %>%
+  cSplit("President Name,Years In Office,Number,Party", ",") %>%
+  rename(president = "President Name,Years In Office,Number,Party_1",
+         years = "President Name,Years In Office,Number,Party_2",
+         number = "President Name,Years In Office,Number,Party_3",
+         party = "President Name,Years In Office,Number,Party_4") %>%
+  separate(years, c("start_year", "end_year"), sep = "-") %>%
+  mutate(end_year = ifelse(president == "William H. Harrison", 1841, end_year)) %>%
+  mutate(end_year = ifelse(president == "Donald Trump", 2021, end_year)) %>%
+  pivot_longer(cols = c(start_year, end_year),
+               names_to = "start_end",
+               values_to = "Year",
+               values_transform = list("Year"=as.numeric)) %>%
+  select(1, 3, 5)
+
+regress_set_b <- left_join(regress_set_a, presidents, by="Year")
+regress_set_b
+
+regress_set_b_1 <- regress_set_b %>%
+  fill(president, .direction = "up") %>%
+  fill(party, .direction = "up")
+regress_set_b_1
+ 
+regress_set_b_2 <- regress_set_b_1 %>%
+  fill(president, .direction = "down") %>%
+  fill(party, .direction = "down")
+regress_set_b_2
+ 
+regress_set_b_2 <- regress_set_b_2[!duplicated(regress_set_b_2$Year, fromLast = T), ]
+ 
+# Add in population dataset; source: https://usafacts.org/data/topics/people-society/population-and-demographics/population-data/population/#chart-12818-0
+
+population_source <- read_csv('population_usafacts.csv')
+
+population <- population_source %>%
+  filter(Years == "Population (People)") %>%
+  select(50:122) %>%
+  pivot_longer(1:73, 
+               names_to = "Year",
+               values_to = "population",
+               names_transform = list("Year"=as.numeric))
+
+regress_set_c <- left_join(regress_set_b_2, population, by="Year")
+regress_set_c
+ 
+
+regress_set_c$pop_growth <- vector("numeric", 71)
+
+for (i in seq(nrow(regress_set_c))) {
+  if (i == 1) {
+    regress_set_c$pop_growth[i] <- 0
+  } else {
+    regress_set_c$pop_growth[i] <- ((regress_set_c$population[i] - regress_set_c$population[i - 1])/regress_set_c$population[i - 1])}
+} # Check calcs
+
+```
+
+# Exploratory Graphs
+
+```{r}
+# consider: how to add in change years to identify possible trends??
+# most everything else is a year to year change except unemployment which is just a percentage...is this important?
+
+regress_set_c %>%
+  pivot_longer(cols = c(pop_growth, avg_unemploy),
+                        names_to = "metric",
+                        values_to = "values") %>%
+  ggplot(aes(x = Year, y = values, group = metric, color = metric)) + 
+    geom_line() +
+    scale_color_manual(values = c("avg_unemploy" = "seagreen", "pop_growth" = "royalblue4")) +
+    wage_theme
+```
+
+```{r}
+# Changes in minimum wage and political party in power
+
+ggplot(regress_set_c, aes(x = Year, y = change, fill = party)) +
+  geom_col() +
+  scale_fill_manual(values = c("Democratic" = "seagreen", "Republican" = "royalblue4")) +
+  wage_theme
+         
+# There seems to be no relationship between party and changes in minimum wage
+```
+
+```{r}
+# Changes in minimum wage and unemployment
+
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot(aes(x = Year, y = avg_unemploy, fill = change)) + 
+    geom_col() +
+    scale_fill_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot() +
+    aes(x = Year, y = avg_unemploy, group = change, color = change) +
+    geom_point(color = "grey") +
+    geom_smooth(method = "lm") +
+    scale_color_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+         
+``` 
+
+```{r}
+# Changes in minimum wage and population
+
+regress_set_c %>%
+  mutate(change = as.character(change)) %>%
+  ggplot(aes(x = Year, y = pop_growth, fill = change)) + 
+    geom_col() +
+    scale_fill_manual(values = c("1" = "seagreen", "0" = "royalblue4")) +
+    wage_theme
+         
+``` 
+
+```{r}
+min_wage_regress <- lm(data = regress_set_c, change ~ avg_unemploy + party + pop_growth)
+summary(min_wage_regress)
+
+# need to go back and review approaches to this
+# need to add logs???
+```
+
+
+
+```{r, warning=FALSE}
+
+# PROBABLY WILL NOT USE THIS!
+
+# Calculate expected minimum wage based off inflation
+
+master_set$ann_inflat <- (master_set$`Annual Inflation`) / 100
+
+master_set$inflat_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$inflat_adj[i] <- master_set$`Minimum Wage`
+  } else {
+    master_set$inflat_adj[i] <- (master_set$inflat_adj[i - 1]*master_set$ann_inflat[i]) + master_set$inflat_adj[i-1]}
+}
+      
+# Calculate expected minimum wage based off productivity
+
+master_set <- master_set %>% 
+  mutate(net_prod_change = (`Net Productivity` - lag(`Net Productivity`, default = first(`Net Productivity`)))) 
+
+master_set <- master_set %>% 
+  mutate(net_prod_change = (net_prod_change / 100))
+
+master_set$prod_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$prod_adj[i] <- master_set$`Minimum Wage`
+  } else {
+    master_set$prod_adj[i] <- (master_set$prod_adj[i - 1]*master_set$net_prod_change[i]) + master_set$prod_adj[i-1]}
+}
+
+
+# Calculate expected minimum wage based off inflation AND productivity
+
+
+master_set$net_impact <- master_set$ann_inflat + master_set$net_prod_change
+
+master_set$inflat_prod_adj <- vector("numeric", 71)
+
+for (i in seq(nrow(master_set))) {
+  if (i == 1) {
+    master_set$inflat_prod_adj[i] <- master_set$`Minimum Wage`
+  } else {
+    master_set$inflat_prod_adj[i] <- (master_set$inflat_prod_adj[i - 1]*master_set$net_impact[i]) + master_set$inflat_prod_adj[i-1]} 
+}
+
+<<<<<<< HEAD
+<<<<<<< HEAD
+
+=======
+=======
+>>>>>>> 7694719109400665735cbae6a6b66876f6d2daf8
+master_set
+
+```
+>>>>>>> f199b70dce0bad412916d689325541927dc74025
+
+
+
+
+
+
+
+
