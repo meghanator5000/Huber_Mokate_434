@@ -21,6 +21,7 @@ library(knitr)
 library(extrafont)
 library(blscrapeR) # to gather and complete inflation-related calculations 
 library(lubridate) # to help clean date representations
+library(kableExtra)
 ```
 
 ## Gather and Clean Original Data
@@ -338,4 +339,55 @@ wage_values_graph
 
 ```
 
+## Table
 
+Here, we want a table that shows all of our calculated values in years where
+Congress adjusted the minimum wage
+
+Meghan: Can we add dollar signs to money???
+
+```{r create-table}
+
+# Create table data; we want to narrow down
+
+table_dataset <- 
+  left_join(min_wage_dataset, main_dataset) %>% 
+  filter(year >= 1948) %>% 
+  mutate(year = as.character(year)) %>% 
+  select(year,
+         raw_min_wage,
+         min_wage_purchasing_power,
+         min_wage_2018_adjusted,
+         min_wage_prod_adjusted)
+
+year_footnote <- "Year congress updated minimum wage."
+raw_min_wage_footnote <- "Original dollar amounts."
+purchasing_power_footnote <- "What is this equivalent to in 2018 dollars?"
+actual_min_wage_footnote <- "Min wage if it was adjusted for inflation."
+productivity_min_wage_footnote <- "Min wage with productivity."
+
+
+table <- 
+  table_dataset %>% 
+  kable(col.names = c("Year[note]", 
+                    "Raw Minimum Wage[note]", 
+                    "Purchasing Power[note]",
+                    "Actual Minimum Wage[note]",
+                    "Productivity Minimum Wage[note]"),
+      align = "ccccc",
+      caption = "Min Wage",
+      format.args = list(big.mark = ","),
+      digits = c(0, 2, 2, 2, 2)) %>% 
+  kable_paper(font_size = 20,       
+              html_font = "Arial",
+              full_width = F) %>% 
+  kable_styling(latex_options = "striped") %>% 
+  add_footnote(c(year_footnote,
+               raw_min_wage_footnote,
+               purchasing_power_footnote,
+               actual_min_wage_footnote,
+               productivity_min_wage_footnote))
+
+table
+
+```
