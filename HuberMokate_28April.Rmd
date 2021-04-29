@@ -9,7 +9,7 @@ The point of this document is to share our work with Alea/Prof Fusi.
 Contains our work, not much more.
 
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
 
 library(tidyverse) 
 library(rvest)
@@ -21,6 +21,7 @@ library(knitr)
 library(extrafont)
 library(blscrapeR) # to gather and complete inflation-related calculations 
 library(lubridate) # to help clean date representations
+library(kableExtra)
 ```
 
 ## Gather and clean original data
@@ -136,29 +137,30 @@ inflation_dataset <-
 
 #First, combine inflation and min_wage datasets
 main_dataset <- 
-  left_join(inflation_dataset, min_wage_dataset, by = "year")
-  
+  full_join(min_wage_dataset, inflation_dataset)
 
 #Now, add in the net productivity
-main_dataset <- 
+main_dataset <-
   left_join(main_dataset, net_productivity_dataset, by = "year")
 
 ```
 
 ```{r tidy-main_dataset}
 
+# Fill in missing values for raw minimum wage, then filter to 1948, which is the
+# year we will use as a base. 1948 was chosen because that was the first year
+# that the US government measured Productivity.
+
 main_dataset <- 
   main_dataset %>% 
-  fill(raw_min_wage, .direction = "down") 
+  arrange(desc(desc(year))) %>% 
+  fill(raw_min_wage, .direction = "down")  %>% 
+  filter(year >= 1948)
 
-
-# In 1948, the minimum wage was $.40. Since our current method of filling in NA
-# values, relies on that value, 
-main_dataset$raw_min_wage <- 
-  replace_na(main_dataset$raw_min_wage,  0.4) #How can we get this to work 
-# in the pipes?
 
 ```
+
+## Create calculations
 
 ```{r calculate-year-to-year-productivity-gains, warning=FALSE}
 
@@ -183,10 +185,6 @@ for (i in 1:nrow(main_dataset)) {
 
 ```
 
-## Create calculations
-
-Issue: We are using the inflation formula, but the data still doesn't seem right.
-Things should start at ~$4, I expect it to go up to like $13.
 
 ```{r convert-minwage-to-2018-dollars}
 
@@ -235,15 +233,15 @@ for (i in 1:nrow(main_dataset)) {
 
 # calculate purchasing power
 main_dataset$cpi_change_from2018 <- (main_dataset$annual_avg_cpi / cpi_for_2018) * 100
-# 1 dollar today = 10 cents in 1948
-# money in 1948 had 90% less purchasing power
+# 1 dollar today = 10 cents in 1948 money in 1948 had 90% less purchasing power
 
-#applying purchasing power
-main_dataset$minwage_purchasingpower <- (cpi_for_2018 / main_dataset$annual_avg_cpi) * main_dataset$raw_min_wage
+# Applying purchasing power
+main_dataset$minwage_purchasingpower <- 
+  (cpi_for_2018 / main_dataset$annual_avg_cpi) * main_dataset$raw_min_wage
+
 # minimum wage was the highest as far as purchasing power goes in the 1970's at ~$10. 
 
 ```
-
 
 
 ```{r calculate_productivity-minwage}
@@ -319,4 +317,41 @@ wage_values_graph
 
 ```
 
+## Table
+
+Here, we want a table that shows all of our calculated values in years where
+Congress adjusted the minimum wage
+
+```{r create-table}
+
+# Create table data; we want to narrow down
+
+table_dataset <- 
+  left_join(min_wage_dataset, main_dataset, by = "year") %>% 
+  filter(!is.na(annual_avg_cpi)) %>% 
+  select(year,
+         raw_min_wage.x,
+         min_wage_2018_adjusted,
+         min_wage_prod_adjusted,
+         minwage_purchasingpower)
+
+
+table <- 
+  main_dataset %>% 
+  kable(col.names = c("Year[note]", 
+                    "Income", 
+                    "Children",
+                    "Income", 
+                    "Children",
+                    "Income", 
+                    "Children",
+                    "Income Change[note]"),
+      align = "cccccccc",
+      caption = "Average Income and # Children by Year Gender Since 2000[note]",
+      format.args = list(big.mark = ","),
+      digits = c(0, 2, 2, 2, 2, 2, 2, 0)))
+
+
+
+```
 
