@@ -149,14 +149,11 @@ main_dataset <-
 
 main_dataset <- 
   main_dataset %>% 
-  fill(raw_min_wage, .direction = "down") 
-
-
+  fill(raw_min_wage, .direction = "down") %>%
+  mutate(raw_min_wage = replace_na(raw_min_wage,  0.4)) 
 # In 1948, the minimum wage was $.40. Since our current method of filling in NA
 # values, relies on that value, 
-main_dataset$raw_min_wage <- 
-  replace_na(main_dataset$raw_min_wage,  0.4) #How can we get this to work 
-# in the pipes?
+
 
 ```
 
@@ -330,7 +327,7 @@ wage_values_graph <-
   labs(title = "$ Disparity in Actual and Calculated \nMinimum Wage over Time",
        y = "Dollars",
        x = "Year",
-       caption = "Year when the federal minimum wage change shown in green") +
+       caption = "Year when the federal minimum wage changed shown in green") +
   scale_color_discrete(name="Minimum Wage",
     breaks=c("raw_min_wage", 
                              "min_wage_2018_adjusted",
