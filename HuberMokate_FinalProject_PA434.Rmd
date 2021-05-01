@@ -1,15 +1,12 @@
 ---
-title: "HuberMokate_28April"
+title: "US Economic Productivity and Minimum Wage"
 author: "Jane Huber & Meghan Mokate"
-date: "4/28/2021"
+date: "4/30/2021"
 output:
-  html_document:
-    code_folding: hide
+  html_document: default
 ---
 
 ## Introduction
-
---> add in note about methodology and code chunks interspersed in document.
 
 Minimum Wage is a piece of federal economic policy that sets a floor for wage work in the United States. Originally brought into law during the Great Depression in the 1930’s, the aim was to create “minimum standard of living necessary for health, efficiency and general well-being, without substantially curtailing employment”.
 
@@ -19,32 +16,14 @@ We will examine that claim through our own analysis of the numbers, looking to s
 
 ## Notes on Methodology
 
-Our methodology is included 
+We include details on our methodology in an appendix after sharing our findings. The code is included in this project for examination.
 
+## Findings
 
-Access to data to produce our own analysis is fairly straightforward, The US Bureau of Labor and Statistics (BLS) has tracked two key productivity measurements since 1948—a raw productivity rate (measuring output per hour) and a multifactor productivity rate (measuring output per unit of combined inputs) [(https://www.bls.gov/bls/productivity.htm)]. We will be using the raw productivity rate since we were able to access cleaned data
+Findings are...
 
-The value of inflation of the US dollar is important to factor in because it imbeds purchasing power of the dollar into what the minimum wage includes. For example, a study by Pew Research demonstrates that the minimum wage in 1973, $4.03/hr, has the same purchasing power of $23.68 in August 2018 — more than three times the actual minimum wage [https://www.pewresearch.org/facttank/2018/08/07/for-most-us-workers-real-wages-have-barely-budged-for-decades/].
-
-Citations: 
-https://cepr.net/this-is-what-minimum-wage-would-be-if-it-kept-pace-with-productivity/
-https://www.bls.gov/bls/productivity.htm
-https://www.pewresearch.org/fact-tank/2018/08/07/for-most-us-workers-real-wages-have-barely-
-budged-for-decades 
-https://www.forbes.com/advisor/personal-finance/minimumwage-debate/
-https://democracyjournal.org/magazine/29/minimum-wage-catching-up-to-productivity/
-https://www.nytimes.com/2020/06/18/business/coronavirus-minimum-wage-increase.html
-https://www.cnn.com/interactive/2019/business/us-minimum-wage-by-year/index.html
-
-
-# Guide to key datasets
-1. main_set = includes all calculations and multiplies and is un-pivoted (wide)
-2. main_dataset_final = includes all calculations and multiplies and is pivoted (long) by dollar value calculations each year
-3. wage_values_graph = graphed findings of cacluations
-4. table = table for values in years when minimum wage changed
-
-```{r setup, include=FALSE, message=FALSE, warning=FALSE}
-knitr::opts_chunk$set(echo = TRUE,  message=FALSE, warning=FALSE)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 
 library(tidyverse) 
 library(rvest)
@@ -57,11 +36,7 @@ library(lubridate) # to help clean date representations
 library(kableExtra)
 library(formattable) # to change value to currency
 ```
-
-## Gather and Clean Data
-
-Add in data from the Economic Policy Institute containing columns for hourly compensation and net productivity by year (1948 through 2018).
-```{r gather-clean-productivity-data}
+```{r gather-clean-productivity-data, include = FALSE}
 
 #Source: https://www.epi.org/productivity-pay-gap/
 net_productivity_dataset <- read_csv("Data_HourlyCompensation_NetProd.csv")
@@ -73,9 +48,7 @@ net_productivity_dataset <-
             net_productivity = `Net Productivity`)
 
 ```
-
-Add in data from the US Department of Labor containing raw minimum wage by year. 
-```{r gather-clean-minimum-wage}
+```{r gather-clean-minimum-wage, include = FALSE}
 #Source: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
 min_wage_dataset <- read_csv("FederalMinimumWage.csv")
 
@@ -96,12 +69,7 @@ min_wage_dataset <-
 # combine datasets.
 
 ```
-
-Useful Q & A about what CPI is and how to interpret:
-https://www.bls.gov/cpi/questions-and-answers.htm#Question_15
-
-Pull in inflation data from the Bureau of Labor Statistics that details the annual average CPI for the years in our scope. Data download is made possible via an API.
-```{r gather-clean-cpi-data}
+```{r gather-clean-cpi-data, include = FALSE}
 
 # Get "seriesId" from BLS website.This refers to the CPI for all items
 # for urban consumers, which is considered the standard for economic
@@ -168,9 +136,7 @@ inflation_dataset <-
 #   inflation = ((SecondPeriodCPI - PreviousPeriodCPI) / PreviousPeriodCPI)
 
 ```
-
-Pull in and tidy dataset with data relating to who was president each year. This will be used in our table at the end (we do not join until then)
-```{r}
+```{r gather-presidents-dataset, include = FALSE}
 presidents <- read_csv('presidents.csv') %>%
   cSplit("President Name,Years In Office,Number,Party", ",") %>% # split values into separate columns
   rename(president = "President Name,Years In Office,Number,Party_1", # rename columns
@@ -186,11 +152,7 @@ presidents <- read_csv('presidents.csv') %>%
                values_transform = list("year"=as.numeric)) %>%
   select(1, 3, 5) # select only rows we want
 ```
-
-## Combine and Tidy Data
-
-Join datasets
-```{r combine-datasets}
+```{r combine-datasets, include = FALSE}
 #First, combine inflation and min_wage datasets
 main_dataset <- 
   full_join(min_wage_dataset, inflation_dataset)
@@ -200,9 +162,7 @@ main_dataset <-
   full_join(main_dataset, net_productivity_dataset)
 
 ```
-
-Tidy main dataset
-```{r tidy-main_dataset}
+```{r tidy-main_dataset, include = FALSE}
 # ensure that year is arrange chronologically and fill minimum wage values down so that all years have a value for minimum wage, not just the year it changed
 # filter year since our scope is only for 1948 through 2018
 main_dataset <- 
@@ -212,11 +172,7 @@ main_dataset <-
   filter(year >= 1948)
 
 ```
-
-## Create calculations
-
-Generate a productivity multiplier representing productivity changes year over year. This will be used to calculate a new minimum wage value that is productivity-adjusted. 
-```{r calculate-year-to-year-productivity-gains, warning=FALSE}
+```{r calculate-year-to-year-productivity-gains, include = FALSE}
 # We will be using a for loop to calculate this column
 
 # need to create the column with the specified type and length
@@ -237,10 +193,7 @@ for (i in 1:nrow(main_dataset)) {
 }
 
 ```
-
-Here, we want to convert all dollar amounts in our dataset to 2018 dollars.
-This will make all the values more readable to our audience.
-```{r convert-minwage-to-2018-dollars}
+```{r convert-minwage-to-2018-dollars, include = FALSE}
 main_dataset$min_wage_2018_adjusted <- vector("numeric", nrow(main_dataset))
 
 # pull the value for annual average cpi in 2018 and store it in this variable
@@ -283,9 +236,7 @@ for (i in 1:nrow(main_dataset)) {
 }
 
 ```
-
-Create column that divides the average CPI each year by the CPI for 2018 (found above) and multiples by 100
-```{r calculate-purchasing-power}
+```{r calculate-purchasing-power, include = FALSE}
 # calculate purchasing power
 main_dataset$cpi_change_from_2018 <- (main_dataset$annual_avg_cpi / cpi_for_2018) * 100
 # 1 dollar today = 10 cents in 1948
@@ -296,9 +247,7 @@ main_dataset$min_wage_purchasing_power <- (cpi_for_2018 / main_dataset$annual_av
 # minimum wage was the highest as far as purchasing power goes in the 1970's at ~$10. 
 
 ```
-
-Calculate the productivity-and-inflation-based minimum wage in 2018 dollars
-```{r calculate_productivity-minwage, warning = FALSE}
+```{r calculate_productivity-minwage, include = FALSE}
 
 # Now that minimum wage is in 2018 dollars, we multiple it by raw percentages
 # to get the productivity-and-inflation-based minimum wage. All is in 2018
@@ -320,12 +269,7 @@ for (i in 1:nrow(main_dataset)) {
 }
 
 ```
-
-
-# Graph
-
-Pivot columns for graph
-```{r update-dataset-only-necessary-columns, warning = FALSE}
+```{r update-dataset-only-necessary-columns, include = FALSE}
 
 # Here, we remove unnecessary columns and pivot longer to facilitate graphing
 # our data
@@ -341,22 +285,17 @@ main_dataset_final <-
   select(year, "Type", "Dollars") # only want several columns relevant for the graph
 
 ```
+```{r create-theme, include = FALSE}
+# 1. Includes the minimal theme included in R
+# 2. Assigns the Georgia font to graph text
+# 3. Specifies that the title is bold, size 16, and seagreen
+# 4. Specifies that the subtitle is italic, size 14, and royalblue4
+# 5. Specifies that the axis text is size 12 and navyblue
+# 6. Eliminate axis lines and ticks
+# 7. Rotate x axis values 90 degrees so that entire value is visible and axis is cleaner
+# 8. Specifies that the legend title is bold, size 12, and seagreen
+# 9. Specifies that the legend text is size 12 and navyblue
 
-
-## Create a theme
-
-We create a theme will the following qualities:
-
-1. Includes the minimal theme included in R
-2. Assigns the Georgia font to graph text
-3. Specifies that the title is bold, size 16, and seagreen
-4. Specifies that the subtitle is italic, size 14, and royalblue4
-5. Specifies that the axis text is size 12 and navyblue
-6. Eliminate axis lines and ticks
-7. Rotate x axis values 90 degrees so that entire value is visible and axis is cleaner
-8. Specifies that the legend title is bold, size 12, and seagreen
-9. Specifies that the legend text is size 12 and navyblue
-```{r create-theme}
 wage_theme <-
   theme_minimal() + 
   theme(
@@ -371,9 +310,7 @@ wage_theme <-
     legend.title = element_text(size = 12, face = "bold", color = "seagreen"), 
     legend.text = element_text(size = 12, color = "navyblue")) 
 ```
-
-Create column in un-pivoted dataset to identify years that the minimum wage changed
-```{r}
+```{r add-wage-change data, include = FALSE}
 # need to create the column with the specified type and length
 main_dataset$wage_change <- vector("numeric", nrow(main_dataset))
 
@@ -392,11 +329,7 @@ for (i in seq(nrow(main_dataset))) {
 }
 
 ```
-
-## Create Graph to show changed the different minimum wage values that we calculated as well as raw minimum wage 
-Create two parts of the graph: year when minimum wage changed as a background bar graph with high transparency and a line graph for the various minimum wage values
-
-```{r create-graph-comparing-min-wages, warning=FALSE, echo=FALSE, message = FALSE}
+```{r create-graph-comparing-min-wages, echo = TRUE}
 wage_values_graph <- 
   ggplot() +
     geom_bar(data = main_dataset, aes(x = year, y = wage_change), alpha = .3, stat = "identity", color = "darkseagreen1") + # shows years that minimum wage changed in green with an alpha to make the bars transparent
@@ -418,6 +351,7 @@ wage_values_graph # view the graph
 ```
 
 ## Interpret Graph
+
 -----> general question: are the legend values descriptive enough? should we rename or add footnotes? 
 
 As discussed in the overview, the current discussions surrounding minimum wage increases are very polarizing, with impassioned beliefs of pros and cons from proponents and opponents of the measure. Key arguments made against raising minimum wage are that the increase could lead to inflation and job losses, and negatively impact businesses. Conversely, proponents raise points about the increased costs of living and claim that the current rate is not sufficient income.
@@ -452,10 +386,9 @@ p2 <- p1 %>%
 
 wage_with_pres <- p2[!duplicated(p2$year, fromLast = T), ] # clear out any duplicated years by taking the last value of that year 
 ```
-
-Here, we want a table that shows all of our calculated values in years where
-Congress adjusted the minimum wage
-```{r create-table}
+```{r organize}
+```
+```{r create-table, echo = TRUE}
 # Create table data; we want to narrow down
 table_dataset <- 
   left_join(wage_with_pres, min_wage_dataset) %>% 
@@ -511,3 +444,47 @@ table <-
 table
 
 ```
+Here, we want a table that shows all of our calculated values in years where
+Congress adjusted the minimum wage
+
+
+## Appendix I: Methodology and Data
+
+
+### Gather Datasets
+
+<li>Data Sources</li>
+- Gather productivity data from: https://www.epi.org/productivity-pay-gap/
+- Gather minimum wage data from: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
+- Gather CPI data from the Bureau of Labor Statistics that details the annual average CPI for the years in our scope. Data download is made possible via an API.
+    - Useful Q & A about what CPI is and how to interpret: https://www.bls.gov/cpi/questions-and-answers.htm#Question_15 </liii>
+- Pull in inflation data from : 
+
+Guide to key datasets:
+1. main_set = includes all calculations and multiplies and is un-pivoted (wide)
+2. main_dataset_final = includes all calculations and multiplies and is pivoted (long) by dollar value calculations each year
+3. wage_values_graph = graphed findings of cacluations
+4. table = table for values in years when minimum wage changed
+
+
+## Gather and Clean Data
+
+Add in data from the Economic Policy Institute containing columns for hourly compensation and net productivity by year (1948 through 2018).
+
+Pull in and tidy dataset with data relating to who was president each year. This will be used in our table at the end (we do not join until then)
+
+Join and tidy datasets
+
+Generate a productivity multiplier representing productivity changes year over year. This will be used to calculate a new minimum wage value that is productivity-adjusted. 
+
+
+Here, we want to convert all dollar amounts in our dataset to 2018 dollars.
+This will make all the values more readable to our audience.
+
+Create column that divides the average CPI each year by the CPI for 2018 (found above) and multiples by 100
+
+Calculate the productivity-and-inflation-based minimum wage in 2018 dollars
+
+
+## Create Graph to show changed the different minimum wage values that we calculated as well as raw minimum wage 
+Create two parts of the graph: year when minimum wage changed as a background bar graph with high transparency and a line graph for the various minimum wage values
