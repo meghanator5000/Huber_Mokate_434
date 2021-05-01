@@ -16,10 +16,7 @@ We will examine that claim through our own analysis of the numbers, looking to s
 
 ## Findings
 
-### 2018 GDP Adjusted Versus Raw Value:
-
-The graph shows the steady shallow slope of the raw value of minimum wage over time, ending in a value of \$7.25 in 2018. 
-On the other hand, the 2018 GDP Adjusted line, which calculates minimum wage in 2018 dollars adjusted for GDP, shows a much steeper slope. The slope particularly appears to begin its sharp increase in the late 1970s and really takes off around 1981 (the first year of the Reagan administration), ending with a value of $39.45. The gap between these lines demonstrates the amount that wage has failed to increase proportionately with GDP, or net productivity. In terms of informing policy, a GDP adjusted minimum wage of almost \$40 makes the "Fight for 15" appear much less radical.
+--> Need a quick summary of findings.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
@@ -56,12 +53,6 @@ min_wage_dataset <-
   transmute(year = as.numeric(format(as.Date(mdy(effective_date)), "%Y")),
             raw_min_wage = 
               as.numeric(str_replace_all(fed_min_wage, "\\$", "")))
-
-# min_wage_dataset %>% 
-#   complete(year)
-
-# Transmute year, we have to do some work to parse out the year value
-# Transmute raw_min_wage, we want to remove the $ sign.
 
 # NOTE: At this point, the minimum wage dataset only contains years in which
 # the minimum wage was adjusted by Congress. We will address this as we
@@ -349,11 +340,10 @@ wage_values_graph <-
 wage_values_graph # view the graph
 ```
 
-## Interpret Graph
+### 2018 GDP Adjusted Versus Raw Value:
 
-As discussed in the overview, the current discussions surrounding minimum wage increases are very polarizing, with impassioned beliefs of pros and cons from proponents and opponents of the measure. Key arguments made against raising minimum wage are that the increase could lead to inflation and job losses, and negatively impact businesses. Conversely, proponents raise points about the increased costs of living and claim that the current rate is not sufficient income.
-
-Independent of these arguments, our calculations seek to mathematically assess how minimum wage over time has related to important economic factors: purchasing power and worker productivity. In doing this, we can provide color about what how minimum wage has changed contextually from 1940 to 2018. The findings of our calculations are visually presented through the graph, which allows us to easily identify how actual raw minimum wage relates to the identified economic factors year over year.
+The graph shows the steady shallow slope of the raw value of minimum wage over time, ending in a value of \$7.25 in 2018. 
+On the other hand, the 2018 GDP Adjusted line, which calculates minimum wage in 2018 dollars adjusted for GDP, shows a much steeper slope. The slope particularly appears to begin its sharp increase in the late 1970s and really takes off around 1981 (the first year of the Reagan administration), ending with a value of $39.45. The gap between these lines demonstrates the amount that wage has failed to increase proportionately with GDP, or net productivity. In terms of informing policy, a GDP adjusted minimum wage of almost \$40 makes the "Fight for 15" appear much less radical.
 
 ### Purchasing Power Versus Raw Value
 
@@ -363,20 +353,25 @@ These metrics highlight that minimum wage over time has failed to keep pace with
 
 ### Years with Changes in Federal Minimum Wage
 
-Another informative component of the graph is the green bars, which represent years when federal minimum wage increased. From this analysis, we can see that the longest periods where minimum wage went unchanged were from 1982-1989 (Reagan), 1997-2007 (Clinton and Bush), and from 2009-present (Obama, Trump, Biden). Further, 1974-1981 had almost annual increases in federal minimum wage. Though the increases do not appear to have kept pace with the increasing GDP those years, the increases prevented the gap from widening as much as it would have if the wage had flat-lined. The context provided from viewing historical increases in minimum wage make it clear that the unchanged federal minimum wage from 2009-2018 (and, indeed, to 2021), is an uncommonly long duration. Further, while raw minimum wage has plateaued, 2018 GDP Adjusted values continue to increase shaply and steadily. 
+Another informative component of the graph is the green bars, which represent years when federal minimum wage increased. From this analysis, we can see that the longest periods where minimum wage went unchanged were from 1982-1989 (Reagan), 1997-2007 (Clinton and Bush), and from 2009-present (Obama, Trump, Biden). Further, 1974-1981 had almost annual increases in federal minimum wage. Though the increases do not appear to have kept pace with the increasing GDP those years, the increases prevented the gap from widening as much as it would have if the wage had flat-lined. The context provided from viewing historical increases in minimum wage make it clear that the unchanged federal minimum wage from 2009-2018 (and, indeed, to 2021), is an uncommonly long duration. Further, while raw minimum wage has plateaued, 2018 GDP Adjusted values continue to increase sharply and steadily. 
 
-# Table
-```{r create-presidents-dataset, include = FALSE}
+## Snapshot of Minimum Wage Increases
+
+While reflecting on patterns of minimum wage value and increases, it can be helpful to take a snapshot of how minimum wage looks in years in which Congress voted to increase that value.  Alongside the raw minimum wage value, the purchasing power of minimum wage, and a productivity-increased minimum wage value, we wanted to include which president oversaw the increase in minimum wage and the number of years since the previous change.
+
+We wanted to add these values in context because it allows for US observers to see more political context when thinking about minimum wage changes and, in particular, to emphasize the lack of steady and regular increases in the minimum wage in the second half of the 20th Century and the beginning of the 21st Century.
+
+It is exactly this lack of increases in the minimum wage that has contributed to the lessening purchasing power of minimum wage, which contributes to many economic issues in the country such as widening inequality.
+
+```{r adjust-presidents-dataset, include = FALSE}
 # Add in president data pulled in earlier
 # This helps us to provide some analysis of what administrations increased wages for context, referenced in our interpretation of our chart
-p1 <-
-  left_join(main_dataset, presidents) 
 
-p2 <- p1 %>% 
-  fill(president, .direction = "up") %>%
-  fill(party, .direction = "up") # ensure that all years have party and president values, not just start and end years
+wage_with_pres <-
+  left_join(main_dataset, presidents) %>% 
+  fill(president, .direction = "up") %>%  # ensure that all years have president values
+  filter(!duplicated(year, fromLast = T))
 
-wage_with_pres <- p2[!duplicated(p2$year, fromLast = T), ] # clear out any duplicated years by taking the last value of that year 
 ```
 ```{r create-table-dataset, include = FALSE}
 # Create table data; we want to narrow down
@@ -446,21 +441,27 @@ table <-
 table
 
 ```
-Here, we want a table that shows all of our calculated values in years where
-Congress adjusted the minimum wage
-
 
 ## Appendix I: Methodology and Data
 
+As discussed in the introduction, the current discussions surrounding minimum wage increases are very polarizing, with impassioned beliefs of pros and cons from proponents and opponents of the measure. Key arguments made against raising minimum wage are that the increase could lead to inflation and job losses, and negatively impact businesses. Conversely, proponents raise points about the increased costs of living and claim that the current rate is not sufficient income.
+
+Independent of these arguments, our calculations seek to mathematically assess how minimum wage over time has related to important economic factors: purchasing power and worker productivity. In doing this, we can provide color about what how minimum wage has changed contextually from 1940 to 2018. The findings of our calculations are visually presented through the graph, which allows us to easily identify how actual raw minimum wage relates to the identified economic factors year over year.
 
 ### Gather Datasets
 
 <li>Data Sources</li>
-- Gather productivity data from: https://www.epi.org/productivity-pay-gap/
-- Gather minimum wage data from: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
-- Gather CPI data from the Bureau of Labor Statistics that details the annual average CPI for the years in our scope. Data download is made possible via an API.
+- Productivity data from: https://www.epi.org/productivity-pay-gap/
+  - Note that this data comes from a policy research institute, the Economic Policy Institute, but its source is the Bureau of Labor Statistics (BLS) Labor Productivity and Costs program.
+- Minimum wage data from: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
+- CPI data from the Bureau of Labor Statistics that details the annual average CPI for the years in our scope. Data download is made possible via an API.
+    - In order to calculate the purchasing power of a dollar in 1950 in 2018 dollars, the conversion formula is: ((CPI2 - CP1) / CP1) * 100. CPI2 = CPI value in the later year; CPI1 = CPI value of the earlier year. That value would then be multiplied by the dollar amount in 1950 that we seek to convert in 1950.
     - Useful Q & A about what CPI is and how to interpret: https://www.bls.gov/cpi/questions-and-answers.htm#Question_15 </liii>
-- Pull in inflation data from : 
+- Presidents data from: ________
+
+These source of all of these data are government sources and are therefore considered reliable. There are no obvious limitations to the data, except that perhaps the productivity data was cleaned by a third party and a mistake could have been made. That said, we have no reason to be directly concerned about that data.
+
+### Gather and Clean Data
 
 Guide to key datasets:
 1. main_set = includes all calculations and multiplies and is un-pivoted (wide)
@@ -468,25 +469,26 @@ Guide to key datasets:
 3. wage_values_graph = graphed findings of cacluations
 4. table = table for values in years when minimum wage changed
 
+### Calculations
 
-## Gather and Clean Data
-
-Add in data from the Economic Policy Institute containing columns for hourly compensation and net productivity by year (1948 through 2018).
-
-Pull in and tidy dataset with data relating to who was president each year. This will be used in our table at the end (we do not join until then)
-
-Join and tidy datasets
-
-Generate a productivity multiplier representing productivity changes year over year. This will be used to calculate a new minimum wage value that is productivity-adjusted. 
+Productivity Multiplier: [add more context, explain method]
+The productivity multiplier plays a very important role in how we understand the value of what minimum wage would be if it rose alongside GDP. 
 
 
+Purchasing Power of Minimum Wage: [add more context, explain method]
 Here, we want to convert all dollar amounts in our dataset to 2018 dollars.
 This will make all the values more readable to our audience.
 
 Create column that divides the average CPI each year by the CPI for 2018 (found above) and multiples by 100
 
+Value of Minimum Wage Factoring in Productivity: [add more context, explain method]
 Calculate the productivity-and-inflation-based minimum wage in 2018 dollars
 
+### Final adjustments to data for graph and table
 
-## Create Graph to show changed the different minimum wage values that we calculated as well as raw minimum wage 
-Create two parts of the graph: year when minimum wage changed as a background bar graph with high transparency and a line graph for the various minimum wage values
+Since our datasets were relatively clean and tidy, there were not many changes needed to use them for the graph and table that we present.
+
+Graph Adjustments:
+That said, our main_dataset needed to be adjusted ...
+
+Table Data Adjustments:
