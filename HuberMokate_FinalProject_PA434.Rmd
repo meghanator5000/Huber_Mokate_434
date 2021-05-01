@@ -3,7 +3,8 @@ title: "US Economic Productivity and Minimum Wage"
 author: "Jane Huber & Meghan Mokate"
 date: "4/30/2021"
 output:
-  html_document: default
+  html_document:
+     code_folding: hide
 ---
 
 ## Introduction
@@ -374,7 +375,7 @@ These metrics highlight that minimum wage over time has failed to keep pace with
 Another informative component of the graph is the green bars, which represent years when federal minimum wage increased. From this analysis, we can see that the longest periods where minimum wage went unchanged were from 1982-1989 (Reagan), 1997-2007 (Clinton and Bush), and from 2009-present (Obama, Trump, Biden). Further, 1974-1981 had almost annual increases in federal minimum wage. Though the increases do not appear to have kept pace with the increasing GDP those years, the increases prevented the gap from widening as much as it would have if the wage had flat-lined. The context provided from viewing historical increases in minimum wage make it clear that the unchanged federal minimum wage from 2009-2018 (and, indeed, to 2021), is an uncommonly long duration. Further, while raw minimum wage has plateaued, 2018 GDP Adjusted values continue to increase shaply and steadily. 
 
 # Table
-```{r presidents}
+```{r create-presidents-dataset, include = FALSE}
 # Add in president data pulled in earlier
 # This helps us to provide some analysis of what administrations increased wages for context, referenced in our interpretation of our chart
 p1 <-
@@ -386,9 +387,7 @@ p2 <- p1 %>%
 
 wage_with_pres <- p2[!duplicated(p2$year, fromLast = T), ] # clear out any duplicated years by taking the last value of that year 
 ```
-```{r organize}
-```
-```{r create-table, echo = TRUE}
+```{r create-table-dataset, include = FALSE}
 # Create table data; we want to narrow down
 table_dataset <- 
   left_join(wage_with_pres, min_wage_dataset) %>% 
@@ -408,12 +407,29 @@ table_dataset$raw_min_wage <- currency(table_dataset$raw_min_wage, digits = 2L)
 table_dataset$min_wage_purchasing_power <- currency(table_dataset$min_wage_purchasing_power, digits = 2L)
 table_dataset$min_wage_2018_adjusted <- currency(table_dataset$min_wage_2018_adjusted, digits = 2L)
 table_dataset$min_wage_prod_adjusted <- currency(table_dataset$min_wage_prod_adjusted, digits = 2L)
+```
+
+```{r organize-table-data, include = FALSE}
+
+long_gap_min_wage_change <- ifelse(table_dataset$`Number of Years Since Last Change` > 5, "red", "black")
+
+```
+```{r create-table, echo = FALSE}
+
 
 year_footnote <- "Year congress updated minimum wage."
 raw_min_wage_footnote <- "Original dollar amounts."
-purchasing_power_footnote <- "What is this equivalent to in 2018 dollars?"
-actual_min_wage_footnote <- "Min wage if it was adjusted for inflation."
-productivity_min_wage_footnote <- "Min wage with productivity."
+purchasing_power_footnote <- "Equivalent to in 2018 dollars."
+actual_min_wage_footnote <- "Minimum wage if it was adjusted for inflation."
+productivity_min_wage_footnote <- "Minimum wage if increased along with productivity."
+num_years_since_change_footnote <- "We highlight years where it has been more than 5 years since a minimum wage change."
+
+footnotes <- c(year_footnote,
+               raw_min_wage_footnote,
+               purchasing_power_footnote,
+               actual_min_wage_footnote,
+               productivity_min_wage_footnote,
+               num_years_since_change_footnote)
 
 table <- 
   table_dataset %>% 
@@ -423,7 +439,7 @@ table <-
                     "Purchasing Power[note]",
                     "Actual Minimum Wage[note]",
                     "Productivity Minimum Wage[note]",
-                    "Number of Years Since Last Change"),
+                    "Number of Years Since Last Change[note]"),
       align = "ccccccc",
       caption = "Minimum Wage",
       format.args = list(big.mark = ","),
@@ -432,13 +448,9 @@ table <-
               html_font = "Georgia",
               full_width = T) %>% 
   kable_styling(latex_options = "striped") %>% 
-  add_footnote(c(year_footnote,
-               raw_min_wage_footnote,
-               purchasing_power_footnote,
-               actual_min_wage_footnote,
-               productivity_min_wage_footnote)) %>%
+  add_footnote(footnotes) %>%
   row_spec(0, bold = T, color ="seagreen", font_size = 15) %>% #Add styling to header
-  column_spec(7, color = c(rep("black", 13), "red", "black", "black", "black", "red", rep("black", 19))) %>% # change font to red in red years that have not had a minimum wage increase in a long time
+  column_spec(7, color = long_gap_min_wage_change) %>% # change font to red in red years that have not had a minimum wage increase in a long time
   column_spec(1, bold = T) 
 
 table

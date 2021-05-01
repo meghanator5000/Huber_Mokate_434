@@ -189,6 +189,66 @@ window.buildTabsets = function(tocID) {
 };
 
 </script>
+<script>
+window.initializeCodeFolding = function(show) {
+
+  // handlers for show-all and hide all
+  $("#rmd-show-all-code").click(function() {
+    $('div.r-code-collapse').each(function() {
+      $(this).collapse('show');
+    });
+  });
+  $("#rmd-hide-all-code").click(function() {
+    $('div.r-code-collapse').each(function() {
+      $(this).collapse('hide');
+    });
+  });
+
+  // index for unique code element ids
+  var currentIndex = 1;
+
+  // select all R code blocks
+  var rCodeBlocks = $('pre.r, pre.python, pre.bash, pre.sql, pre.cpp, pre.stan, pre.julia, pre.foldable');
+  rCodeBlocks.each(function() {
+
+    // create a collapsable div to wrap the code in
+    var div = $('<div class="collapse r-code-collapse"></div>');
+    var showThis = (show || $(this).hasClass('fold-show')) && !$(this).hasClass('fold-hide');
+    if (showThis) div.addClass('in');
+    var id = 'rcode-643E0F36' + currentIndex++;
+    div.attr('id', id);
+    $(this).before(div);
+    $(this).detach().appendTo(div);
+
+    // add a show code button right above
+    var showCodeText = $('<span>' + (showThis ? 'Hide' : 'Code') + '</span>');
+    var showCodeButton = $('<button type="button" class="btn btn-default btn-xs code-folding-btn pull-right"></button>');
+    showCodeButton.append(showCodeText);
+    showCodeButton
+        .attr('data-toggle', 'collapse')
+        .attr('data-target', '#' + id)
+        .attr('aria-expanded', showThis)
+        .attr('aria-controls', id);
+
+    var buttonRow = $('<div class="row"></div>');
+    var buttonCol = $('<div class="col-md-12"></div>');
+
+    buttonCol.append(showCodeButton);
+    buttonRow.append(buttonCol);
+
+    div.before(buttonRow);
+
+    // update state of button on show/hide
+    div.on('hidden.bs.collapse', function () {
+      showCodeText.text('Code');
+    });
+    div.on('show.bs.collapse', function () {
+      showCodeText.text('Hide');
+    });
+  });
+
+}
+</script>
 <style type="text/css">.hljs-literal {
 color: #990073;
 }
@@ -578,6 +638,9 @@ summary {
 </style>
 
 <!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
 
 
 
@@ -593,6 +656,14 @@ summary {
 
 
 <div class="fluid-row" id="header">
+
+<div class="btn-group pull-right">
+<button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
 
 
 
@@ -661,69 +732,6 @@ wage_values_graph # view the graph</code></pre>
 </div>
 <div id="table" class="section level1">
 <h1>Table</h1>
-<pre class="r"><code># Add in president data pulled in earlier
-# This helps us to provide some analysis of what administrations increased wages for context, referenced in our interpretation of our chart
-p1 &lt;-
-  left_join(main_dataset, presidents) 
-
-p2 &lt;- p1 %&gt;% 
-  fill(president, .direction = &quot;up&quot;) %&gt;%
-  fill(party, .direction = &quot;up&quot;) # ensure that all years have party and president values, not just start and end years
-
-wage_with_pres &lt;- p2[!duplicated(p2$year, fromLast = T), ] # clear out any duplicated years by taking the last value of that year </code></pre>
-<pre class="r"><code># Create table data; we want to narrow down
-table_dataset &lt;- 
-  left_join(wage_with_pres, min_wage_dataset) %&gt;% 
-  filter(wage_change == 45) %&gt;%
-  filter(year &gt;= 1948) %&gt;% 
-  select(year,
-         president,
-         raw_min_wage,
-         min_wage_purchasing_power,
-         min_wage_2018_adjusted,
-         min_wage_prod_adjusted) %&gt;%
-  mutate(&quot;Number of Years Since Last Change&quot; = year - lag(year, default = first(year))) %&gt;% # calculate how long it has been since the last increase in minimum wage
-  mutate(year = as.character(year))
-
-# Convert all dollar values to currency type
-table_dataset$raw_min_wage &lt;- currency(table_dataset$raw_min_wage, digits = 2L)
-table_dataset$min_wage_purchasing_power &lt;- currency(table_dataset$min_wage_purchasing_power, digits = 2L)
-table_dataset$min_wage_2018_adjusted &lt;- currency(table_dataset$min_wage_2018_adjusted, digits = 2L)
-table_dataset$min_wage_prod_adjusted &lt;- currency(table_dataset$min_wage_prod_adjusted, digits = 2L)
-
-year_footnote &lt;- &quot;Year congress updated minimum wage.&quot;
-raw_min_wage_footnote &lt;- &quot;Original dollar amounts.&quot;
-purchasing_power_footnote &lt;- &quot;What is this equivalent to in 2018 dollars?&quot;
-actual_min_wage_footnote &lt;- &quot;Min wage if it was adjusted for inflation.&quot;
-productivity_min_wage_footnote &lt;- &quot;Min wage with productivity.&quot;
-
-table &lt;- 
-  table_dataset %&gt;% 
-  kable(col.names = c(&quot;Year[note]&quot;, 
-                    &quot;President&quot;,
-                    &quot;Raw Minimum Wage[note]&quot;, 
-                    &quot;Purchasing Power[note]&quot;,
-                    &quot;Actual Minimum Wage[note]&quot;,
-                    &quot;Productivity Minimum Wage[note]&quot;,
-                    &quot;Number of Years Since Last Change&quot;),
-      align = &quot;ccccccc&quot;,
-      caption = &quot;Minimum Wage&quot;,
-      format.args = list(big.mark = &quot;,&quot;),
-      digits = c(0, 2, 2, 2, 2)) %&gt;% 
-  kable_paper(font_size = 12,       
-              html_font = &quot;Georgia&quot;,
-              full_width = T) %&gt;% 
-  kable_styling(latex_options = &quot;striped&quot;) %&gt;% 
-  add_footnote(c(year_footnote,
-               raw_min_wage_footnote,
-               purchasing_power_footnote,
-               actual_min_wage_footnote,
-               productivity_min_wage_footnote)) %&gt;%
-  row_spec(0, bold = T, color =&quot;seagreen&quot;, font_size = 15) %&gt;% #Add styling to header
-  column_spec(7, color = c(rep(&quot;black&quot;, 13), &quot;red&quot;, &quot;black&quot;, &quot;black&quot;, &quot;black&quot;, &quot;red&quot;, rep(&quot;black&quot;, 19))) %&gt;% # change font to red in red years that have not had a minimum wage increase in a long time
-  column_spec(1, bold = T) 
-
-table</code></pre>
 <table class=" lightable-paper table" style="font-size: 12px; font-family: Georgia; margin-left: auto; margin-right: auto; margin-left: auto; margin-right: auto;">
 <caption style="font-size: initial !important;">
 Minimum Wage
@@ -749,7 +757,7 @@ Actual Minimum Wage<sup>d</sup>
 Productivity Minimum Wage<sup>e</sup>
 </th>
 <th style="text-align:center;font-weight: bold;color: seagreen !important;font-size: 15px;">
-Number of Years Since Last Change
+Number of Years Since Last Change<sup>f</sup>
 </th>
 </tr>
 </thead>
@@ -796,7 +804,7 @@ $4.27
 <td style="text-align:center;">
 $4.90
 </td>
-<td style="text-align:center;color: black !important;">
+<td style="text-align:center;color: red !important;">
 6
 </td>
 </tr>
@@ -911,7 +919,7 @@ $7.75
 <td style="text-align:center;">
 $9.44
 </td>
-<td style="text-align:center;color: black !important;">
+<td style="text-align:center;color: red !important;">
 6
 </td>
 </tr>
@@ -1241,6 +1249,11 @@ $35.01
 <sup>e</sup> Min wage with productivity.
 </td>
 </tr>
+<tr>
+<td style="padding: 0; border:0;" colspan="100%">
+<sup>f</sup> We highlight years where it has been more than 5 years since a minimum wage change.
+</td>
+</tr>
 </tfoot>
 </table>
 <p>Here, we want a table that shows all of our calculated values in years where Congress adjusted the minimum wage</p>
@@ -1312,6 +1325,11 @@ $(document).ready(function () {
 </script>
 
 <!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
 
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
