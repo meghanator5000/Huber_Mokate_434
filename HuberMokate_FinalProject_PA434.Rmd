@@ -329,13 +329,13 @@ wage_values_graph # view the graph
 The graph shows the steady shallow slope of the raw value of minimum wage over time, ending in a value of \$7.25 in 2018. 
 On the other hand, the 2018 GDP Adjusted line, which calculates minimum wage in 2018 dollars adjusted for GDP, shows a much steeper slope. The slope particularly appears to begin its sharp increase in the late 1970s and really takes off around 1981 (the first year of the Reagan administration), ending with a value of $39.45. The gap between these lines demonstrates the amount that wage has failed to increase proportionately with GDP, or net productivity. In terms of informing policy, a GDP adjusted minimum wage of almost \$40 makes the "Fight for 15" appear much less radical.
 
-### Purchasing Power Versus Raw Value
+### Purchasing Power Versus Raw Value:
 
 The graph also shows what the Purchasing Power of minimum wage was over the years in 2018 values. Since the calculation is based on 2018 values, the Raw Value for minimum wage in 2018 is logically equal to its 2018 purchasing power. Though, when looking back year over year, it is clear that the purchasing power of minimum wage has historically been much higher, with the 1940 value of \$4.18 representing a purchasing power of **over ten times** the minimum wage value. 
 
 These metrics highlight that minimum wage over time has failed to keep pace with the economic factors of productivity and purchasing power. 
 
-### Years with Changes in Federal Minimum Wage
+### Years with Changes in Federal Minimum Wage:
 
 Another informative component of the graph is the green bars, which represent years when federal minimum wage increased. From this analysis, we can see that the longest periods where minimum wage went unchanged were from 1982-1989 (Reagan), 1997-2007 (Clinton and Bush), and from 2009-present (Obama, Trump, Biden). Further, 1974-1981 had almost annual increases in federal minimum wage. Though the increases do not appear to have kept pace with the increasing GDP those years, the increases prevented the gap from widening as much as it would have if the wage had flat-lined. The context provided from viewing historical increases in minimum wage make it clear that the unchanged federal minimum wage from 2009-2018 (and, indeed, to 2021), is an uncommonly long duration. Further, while raw minimum wage has plateaued, 2018 GDP Adjusted values continue to increase sharply and steadily. 
 
