@@ -3,7 +3,7 @@ title: "US Economic Productivity and Minimum Wage"
 author: "Jane Huber & Meghan Mokate"
 date: "5/2/2021"
 output:
-  html_document: default
+  html_document: 
     code_folding: hide
 ---
 
