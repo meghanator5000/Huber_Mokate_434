@@ -607,7 +607,7 @@ summary {
 <h2>Introduction</h2>
 <p>Minimum Wage is a piece of federal economic policy that sets a floor for wage work in the United States. Originally brought into law during the Great Depression in the 1930’s, the aim was to create “minimum standard of living necessary for health, efficiency and general well-being, without substantially curtailing employment”.</p>
 <p>Ever since its creation, there has been vigorous debate across the US political spectrum as to what the value of a minimum wage should be or there should be one at all. As the “Fight for 15” political movement rises to prominence at the national level, some economists argue that $15/hour simply is not ambitious enough or is not a reflection of the economy as a whole. The Center for Economic and Policy Research (CEPR) claims, “Until 1968, the minimum wage not only kept pace with inflation, it rose in step with productivity growth. The logic is straightforward; we expect that wages in general will rise in step with productivity growth. For workers at the bottom to share in the overall improvement in society’s living standards, the minimum wage should also rise with productivity.”</p>
-<p>We will examine that claim through our own analysis of the numbers, looking to see what the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables. Our scope looks at the years 1940 through 2018 at the federal level.</p>
+<p>We will examine that claim through our own analysis of the numbers, looking to see what the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables. Our scope looks at the years 1948 through 2018 at the federal level. We use Consumer Price Index (CPI) throughout our calculations.</p>
 </div>
 <div id="findings" class="section level2">
 <h2>Findings</h2>
@@ -1117,26 +1117,31 @@ Data Sources
 <li>In order to calculate the purchasing power of a dollar in 1950 in 2018 dollars, the conversion formula is: ((CPI2 - CP1) / CP1) * 100. CPI2 = CPI value in the later year; CPI1 = CPI value of the earlier year. That value would then be multiplied by the dollar amount in 1950 that we seek to convert in 1950.</li>
 <li>Useful Q &amp; A about what CPI is and how to interpret: <a href="https://www.bls.gov/cpi/questions-and-answers.htm#Question_15" class="uri">https://www.bls.gov/cpi/questions-and-answers.htm#Question_15</a> </liii></li>
 </ul></li>
-<li>Presidents data from: ________</li>
+<li>Presidents data from: <a href="https://github.com/meghanator5000/Dataset-List/blob/master/presidents.csv" class="uri">https://github.com/meghanator5000/Dataset-List/blob/master/presidents.csv</a></li>
 </ul>
-<p>These source of all of these data are government sources and are therefore considered reliable. There are no obvious limitations to the data, except that perhaps the productivity data was cleaned by a third party and a mistake could have been made. That said, we have no reason to be directly concerned about that data.</p>
+<p>These source of all of these data are government sources and are therefore considered reliable, save the president’s dataset which is reliable since it is easily verifiable. There are no obvious limitations to the data, except that perhaps the productivity data was cleaned by a third party and a mistake could have been made. That said, we have no reason to be directly concerned about that data.</p>
 </div>
 <div id="gather-and-clean-data" class="section level3">
 <h3>Gather and Clean Data</h3>
-<p>Guide to key datasets: 1. main_set = includes all calculations and multiplies and is un-pivoted (wide) 2. main_dataset_final = includes all calculations and multiplies and is pivoted (long) by dollar value calculations each year 3. wage_values_graph = graphed findings of cacluations 4. table = table for values in years when minimum wage changed</p>
+<p>Guide to key datasets:</p>
+<ol style="list-style-type: decimal">
+<li>main_set = includes all calculations and multiplies and is un-pivoted (wide)</li>
+<li>main_dataset_final = includes all calculations and multiplies and is pivoted (long) by dollar value calculations each year</li>
+<li>wage_values_graph = graphed findings of calcuations</li>
+<li>table = table for values in years when minimum wage changed</li>
+</ol>
 </div>
 <div id="calculations" class="section level3">
 <h3>Calculations</h3>
-<p>Productivity Multiplier: [add more context, explain method] The productivity multiplier plays a very important role in how we understand the value of what minimum wage would be if it rose alongside GDP.</p>
-<p>Purchasing Power of Minimum Wage: [add more context, explain method] Here, we want to convert all dollar amounts in our dataset to 2018 dollars. This will make all the values more readable to our audience.</p>
-<p>Create column that divides the average CPI each year by the CPI for 2018 (found above) and multiples by 100</p>
-<p>Value of Minimum Wage Factoring in Productivity: [add more context, explain method] Calculate the productivity-and-inflation-based minimum wage in 2018 dollars</p>
+<p>Productivity Multiplier: [check over] The productivity multiplier plays a very important role in how we understand the value of what minimum wage would be if it rose alongside GDP. We calculate the difference in percentage in productivity year to year, divide this by 100 since it is a percentage, and add 1, to make it a multiplier.</p>
+<p>Purchasing Power of Minimum Wage: [check over] Since the minimum wage was implemented to ensure that a reasonable standard of living was sustainable, purchasing power is an important consideration. We calculate purchasing power through applying the 2018 CPI over the annual average CPI for each respective year and multiplying this value by the raw minimum wage for the year.</p>
+<p>Value of Minimum Wage Factoring in Productivity: [check over] Calculate the productivity-and-inflation-based minimum wage in 2018 dollars. Here, we want to convert all dollar amounts in our dataset to 2018 dollars. This will make all the values more readable to our audience. This helps us to better understand the raw minimum wage amounts in modern context, and to perform our analysis. We calculate this using the formula for inflation, (CPIx+1 – CPIx ) / CPIx and multiply this by the base minimum for the 1948 row. We then found the year over year percent increase in CPI through taking CPI per year over prior year average CPI. We calculate adjusted minimum wage by multiplying this percent by the base year minimum wage.</p>
 </div>
 <div id="final-adjustments-to-data-for-graph-and-table" class="section level3">
 <h3>Final adjustments to data for graph and table</h3>
 <p>Since our datasets were relatively clean and tidy, there were not many changes needed to use them for the graph and table that we present.</p>
-<p>Graph Adjustments: That said, our main_dataset needed to be adjusted …</p>
-<p>Table Data Adjustments:</p>
+<p>Graph Adjustments: That said, our main_dataset needed to be adjusted by pivoting our value columns so that they could all be presented as lines on the line graph. We kept a version of the main_dataset to show the bars of the years when minimum wage changed, and created a column for this. Other than that, we added in our theme and other graph features to tell the story we wanted.</p>
+<p>Table Data Adjustments: We also made some small adjustments to our table, beginning with adding in a column for president in each of the years. We then filter for only years when the wage changed for years after 1948 and select only the five columns we want to show: year, president, raw_min_wage, min_wage_purchasing_power, and min_wage_2018_adjusted. Further, we add a column to calculate how long it has been since the last increase in minimum wage. Lastly, we change year to a character value and dollar columns to currency type.</p>
 </div>
 </div>
 

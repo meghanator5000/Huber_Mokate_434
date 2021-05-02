@@ -1,9 +1,10 @@
 ---
 title: "US Economic Productivity and Minimum Wage"
 author: "Jane Huber & Meghan Mokate"
-date: "4/30/2021"
+date: "5/2/2021"
 output:
   html_document: default
+    code_folding: hide
 ---
 
 ## Introduction
@@ -12,7 +13,7 @@ Minimum Wage is a piece of federal economic policy that sets a floor for wage wo
 
 Ever since its creation, there has been vigorous debate across the US political spectrum as to what the value of a minimum wage should be or there should be one at all. As the “Fight for 15” political movement rises to prominence at the national level, some economists argue that $15/hour simply is not ambitious enough or is not a reflection of the economy as a whole. The Center for Economic and Policy Research (CEPR) claims, “Until 1968, the minimum wage not only kept pace with inflation, it rose in step with productivity growth. The logic is straightforward; we expect that wages in general will rise in step with productivity growth. For workers at the bottom to share in the overall improvement in society’s living standards, the minimum wage should also rise with productivity.”
 
-We will examine that claim through our own analysis of the numbers, looking to see what the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables. Our scope looks at the years 1940 through 2018 at the federal level. We use Consumer Price Index (CPI) throughout our calculations.
+We will examine that claim through our own analysis of the numbers, looking to see what the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables. Our scope looks at the years 1948 through 2018 at the federal level. We use Consumer Price Index (CPI) throughout our calculations.
 
 ## Findings
 
@@ -160,7 +161,7 @@ main_dataset <-
 
 ```
 ```{r tidy-main_dataset, include = FALSE}
-# ensure that year is arrange chronologically and fill minimum wage values down so that all years have a value for minimum wage, not just the year it changed
+# ensure that year is arranged chronologically and fill minimum wage values down so that all years have a value for minimum wage, not just the year it changed
 # filter year since our scope is only for 1948 through 2018
 main_dataset <- 
   main_dataset %>% 
@@ -449,6 +450,7 @@ These source of all of these data are government sources and are therefore consi
 ### Gather and Clean Data
 
 Guide to key datasets:
+
 1. main_set = includes all calculations and multiplies and is un-pivoted (wide)
 2. main_dataset_final = includes all calculations and multiplies and is pivoted (long) by dollar value calculations each year
 3. wage_values_graph = graphed findings of calcuations
@@ -456,27 +458,28 @@ Guide to key datasets:
 
 ### Calculations
 
-### MEGHAN NEEDS TO UPDATE
-
-Productivity Multiplier: [add more context, explain method]
+Productivity Multiplier: [check over]
 The productivity multiplier plays a very important role in how we understand the value of what minimum wage would be if it rose alongside GDP. 
-Here, we want to convert all dollar amounts in our dataset to 2018 dollars.
-This will make all the values more readable to our audience.
-We calculate this using the formula for inflation, (CPIx+1 – CPIx ) / CPIx and multiplied this by the base minimum for the 1948 row. We then found the year over year percent increase in CPI through taking CPI per year over prior year average CPI. Finally, we calculated adjusted minimum wage by multiplying this percent by the base year minimum wage. 
+We calculate the difference in percentage in productivity year to year, divide this by 100 since it is a percentage, and add 1, to make it a multiplier.
 
-Purchasing Power of Minimum Wage: [add more context, explain method]
+Purchasing Power of Minimum Wage: [check over]
+Since the minimum wage was implemented to ensure that a reasonable standard of living was sustainable, purchasing power is an important consideration. 
 We calculate purchasing power through applying the 2018 CPI over the annual average CPI for each respective year and multiplying this value by the raw minimum wage for the year.
 
-Value of Minimum Wage Factoring in Productivity: [add more context, explain method]
-Calculate the productivity-and-inflation-based minimum wage in 2018 dollars
+Value of Minimum Wage Factoring in Productivity: [check over]
+Calculate the productivity-and-inflation-based minimum wage in 2018 dollars. 
+Here, we want to convert all dollar amounts in our dataset to 2018 dollars. 
+This will make all the values more readable to our audience. 
+This helps us to better understand the raw minimum wage amounts in modern context, and to perform our analysis.
+We calculate this using the formula for inflation, (CPIx+1 – CPIx ) / CPIx and multiply this by the base minimum for the 1948 row. We then found the year over year percent increase in CPI through taking CPI per year over prior year average CPI. We calculate adjusted minimum wage by multiplying this percent by the base year minimum wage. 
 
 ### Final adjustments to data for graph and table
-
-### MEGHAN NEEDS TO UPDATE
 
 Since our datasets were relatively clean and tidy, there were not many changes needed to use them for the graph and table that we present.
 
 Graph Adjustments:
-That said, our main_dataset needed to be adjusted ...
+That said, our main_dataset needed to be adjusted by pivoting our value columns so that they could all be presented as lines on the line graph. We kept a version of the main_dataset to show the bars of the years when minimum wage changed, and created a column for this. Other than that, we added in our theme and other graph features to tell the story we wanted.
 
 Table Data Adjustments:
+We also made some small adjustments to our table, beginning with adding in a column for president in each of the years. We then filter for only years when the wage changed for years after 1948 and select only the five columns we want to show: year, president, raw_min_wage, min_wage_purchasing_power, and min_wage_2018_adjusted. Further, we add a column to calculate how long it has been since the last increase in minimum wage. Lastly, we change year to a character value and dollar columns to currency type.
+
