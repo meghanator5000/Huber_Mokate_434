@@ -39,10 +39,13 @@ library(extrafont)
 library(lubridate) # to help clean date representations
 library(kableExtra)
 library(formattable) # to change value to currency
+library(blscrapeR) # for API scraping 
 ```
 ```{r gather-clean-productivity-data, include = FALSE}
+# Github links to csv included for ease of downloading
 
 #Source: https://www.epi.org/productivity-pay-gap/
+# https://raw.githubusercontent.com/meghanator5000/Huber_Mokate_434/main/Data_HourlyCompensation_NetProd.csv?token=AOVI43XRHZ2O6BGPLGBLA4LAR5NR2
 net_productivity_dataset <- read_csv("Data_HourlyCompensation_NetProd.csv")
 
 net_productivity_dataset <- 
@@ -54,6 +57,7 @@ net_productivity_dataset <-
 ```
 ```{r gather-clean-minimum-wage, include = FALSE}
 #Source: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
+# https://raw.githubusercontent.com/meghanator5000/Huber_Mokate_434/main/Data_Year_Minwage.csv?token=AOVI43XYGUL7ULFQKX2NWKTAR5NZS
 min_wage_dataset <- read_csv("FederalMinimumWage.csv")
 
 min_wage_dataset <- 
@@ -72,54 +76,49 @@ min_wage_dataset <-
 # Get "seriesId" from BLS website.This refers to the CPI for all items
 # for urban consumers, which is considered the standard for economic
 # analysis.
-# 
-# bls_seriesid <- "CUSR0000SA0"
-# 
-# # BLS API only allows for 10 years of data to be gathered at a time.
-# # Therefore, calculate the number of iterations through a for loop
-# # needed to capture all data.
-# 
-# num_decades <- round((2018 - 1948) / 10) + 1
-# 
-# # Set initial values for start and end year. In the for loop, we will update
-# # these values after gathering the data.
-# start_year <- 1948
-# end_year <- 1957
-# 
-# 
-# # Declare inflation_dataset in Global context, update in for-loop
-# inflation_dataset
-# 
-# for (i in 1:num_decades) {
-# 
-#   if (i != 1) {
-# 
-#     start_year <- end_year + 1
-#     end_year <- start_year + 9
-# 
-#     if (as.numeric(end_year) > 2018) {
-#       #This is the final year that we want in the dataset.
-#       end_year <- 2018
-#     }
-#   }
-# 
-#   print(start_year)
-#   print(end_year)
-# 
-#   decade_dataset <- bls_api(seriesid = bls_seriesid,
-#                        startyear = as.character(start_year),
-#                        endyear = as.character(end_year),
-#                        annualaverage=TRUE)
-#   if (i != 1) {
-#     inflation_dataset <- bind_rows(inflation_dataset, decade_dataset)
-#   } else {
-#     inflation_dataset <- decade_dataset
-#   }
-# }
 
+bls_seriesid <- "CUSR0000SA0"
+
+# BLS API only allows for 10 years of data to be gathered at a time.
+# Therefore, calculate the number of iterations through a for loop
+# needed to capture all data.
+
+num_decades <- round((2018 - 1948) / 10) + 1
+
+# Set initial values for start and end year. In the for loop, we will update
+# these values after gathering the data.
+start_year <- 1948
+end_year <- 1957
+
+for (i in 1:num_decades) {
+
+  if (i != 1) {
+
+    start_year <- end_year + 1
+    end_year <- start_year + 9
+
+    if (as.numeric(end_year) > 2018) {
+      #This is the final year that we want in the dataset.
+      end_year <- 2018
+    }
+  }
+
+  decade_dataset <- bls_api(seriesid = bls_seriesid,
+                       startyear = as.character(start_year),
+                       endyear = as.character(end_year),
+                       annualaverage=TRUE)
+  if (i != 1) {
+    inflation_dataset <- bind_rows(inflation_dataset, decade_dataset)
+  } else {
+    inflation_dataset <- decade_dataset
+  }
+}
+
+# to reduce the number of times we had to run the API, we wrote to a csv and referenced this throughout our testing
 # write_csv(inflation_dataset, "Inflation_Dataset")
+# inflation_dataset <- read_csv("Inflation_Dataset")
 
-inflation_dataset <- read_csv("Inflation_Dataset")
+# https://raw.githubusercontent.com/meghanator5000/Huber_Mokate_434/main/Inflation_Dataset?token=AOVI43Q5RNTD2MNIFO3IUXDAR5N4E
 
 # The BLS provides us with monthly CPI values for every year since 1948. We 
 # need to average these values to create an annual CPI value.
@@ -129,12 +128,9 @@ inflation_dataset <-
   group_by(year) %>% 
   summarize(annual_avg_cpi = mean(value))
 
-# Note: In order to calculate inflation between two years, we will use the
-# following formula (source: BLS):
-#   inflation = ((SecondPeriodCPI - PreviousPeriodCPI) / PreviousPeriodCPI)
-
 ```
 ```{r gather-presidents-dataset, include = FALSE}
+# https://raw.githubusercontent.com/meghanator5000/Dataset-List/master/presidents.csv
 presidents <- read_csv('presidents.csv') %>%
   cSplit("President Name,Years In Office,Number,Party", ",") %>% # split values into separate columns
   rename(president = "President Name,Years In Office,Number,Party_1", # rename columns
@@ -170,7 +166,7 @@ main_dataset <-
   filter(year >= 1948)
 
 ```
-```{r calculate-year-to-year-productivity-gains, include = FALSE}
+```{r calculate-productivity-multiplier, include = FALSE}
 # We will be using a for loop to calculate this column
 
 # need to create the column with the specified type and length
@@ -213,13 +209,9 @@ for (i in 1:nrow(main_dataset)) {
   
   if (i == 1) {
   # We use the formula to get inflation and turn it into a decimal.
-  # Formula: (CPIx+1 – CPIx ) / CPIx, where:
-  # CPIx is Consumer Price Index of Initial Year
   
   inflation_rate <- ((cpi_for_2018 - cpi_for_year) / cpi_for_year)
-  
-  # Multiply the base minimum wage rate (what it was in previous year) by
-  # the inflation rate to get an inflation-adjusted value.
+
   main_dataset$min_wage_2018_adjusted[i] <- inflation_rate * base_min_wage_for_year
   
   } else {
@@ -298,13 +290,13 @@ for (i in seq(nrow(main_dataset))) {
     main_dataset$wage_change[i] <- 0 # do not want these values to show up when graphed
     } 
     else { 
-    main_dataset$wage_change[i] <- 45 # assign value of 45 so that it will align with our other graph when mapped
+    main_dataset$wage_change[i] <- 45 # assign value of 45 so that it will align with our other graph when mapped, since our highest value goes up to about $40, so the height is appropriate for our graph
     }
   }
 }
 
 ```
-```{r create-graph-comparing-min-wages, echo = FALSE}
+```{r create-graph-comparing-min-wages, include = TRUE}
 wage_values_graph <- 
   ggplot() +
     geom_bar(data = main_dataset, aes(x = year, y = wage_change), alpha = .3, stat = "identity", color = "darkseagreen1") + # shows years that minimum wage changed in green with an alpha to make the bars transparent
@@ -343,7 +335,7 @@ Another informative component of the graph is the green bars, which represent ye
 
 While reflecting on patterns of minimum wage value and increases, it can be helpful to take a snapshot of how minimum wage looks in years in which Congress voted to increase that value.  Alongside the raw minimum wage value, the purchasing power of minimum wage, and a productivity-increased minimum wage value, we wanted to include which president oversaw the increase in minimum wage and the number of years since the previous change.
 
-We wanted to add these values in context because it allows for US observers to see more political context when thinking about minimum wage changes and, in particular, to emphasize the lack of steady and regular increases in the minimum wage in the second half of the 20th Century and the beginning of the 21st Century.
+We wanted to add these values in context because it allows for observers to see more political context when thinking about minimum wage changes and, in particular, to emphasize the lack of steady and regular increases in the minimum wage in the second half of the 20th Century and the beginning of the 21st Century.
 
 It is exactly this lack of increases in the minimum wage that has contributed to the lessening purchasing power of minimum wage, which contributes to many economic issues in the country such as widening inequality.
 
@@ -361,15 +353,15 @@ wage_with_pres <-
 # Create table data; we want to narrow down
 table_dataset <- 
   left_join(wage_with_pres, min_wage_dataset) %>% 
-  filter(wage_change == 45) %>%
-  filter(year >= 1948) %>% 
+  filter(wage_change == 45,
+         year >= 1948) %>% 
   select(year,
          president,
          raw_min_wage,
          min_wage_purchasing_power,
          min_wage_2018_adjusted) %>%
-  mutate("Number of Years Since Last Change" = year - lag(year, default = first(year))) %>% # calculate how long it has been since the last increase in minimum wage
-  mutate(year = as.character(year))
+  mutate("Number of Years Since Last Change" = year - lag(year, default = first(year)), # calculate how long it has been since the last increase in minimum wage
+         year = as.character(year)) 
 
 # Convert all dollar values to currency type
 table_dataset$raw_min_wage <- currency(table_dataset$raw_min_wage, digits = 2L)
@@ -380,38 +372,36 @@ table_dataset$min_wage_2018_adjusted <- currency(table_dataset$min_wage_2018_adj
 
 long_gap_min_wage_change <- ifelse(table_dataset$`Number of Years Since Last Change` > 5, "red", "black")
 
-```
-```{r create-table, echo = FALSE}
-
-
 year_footnote <- "Year congress updated minimum wage."
 raw_min_wage_footnote <- "Original dollar amounts."
 purchasing_power_footnote <- "Equivalent to in 2018 dollars."
-actual_min_wage_footnote <- "Minimum wage if it was adjusted for inflation."
+gdp_min_wage_footnote <- "Minimum wage if it was adjusted for GDP"
 productivity_min_wage_footnote <- "Minimum wage if increased along with productivity."
 num_years_since_change_footnote <- "We highlight years where it has been more than 5 years since a minimum wage change."
 
 footnotes <- c(year_footnote,
                raw_min_wage_footnote,
                purchasing_power_footnote,
-               actual_min_wage_footnote,
+               gdp_min_wage_footnote,
                num_years_since_change_footnote)
 
+```
+```{r create-table, include = TRUE}
 table <- 
   table_dataset %>% 
   kable(col.names = c("Year[note]", 
                     "President",
                     "Raw Minimum Wage[note]", 
                     "Purchasing Power[note]",
-                    "Actual Minimum Wage[note]",
-                    "Number of Years Since Last Change[note]"),
+                    "2018 GDP Adjusted Minimum Wage[note]",
+                    "Number of Years Since Last Change[note]"), 
       align = "cccccc",
       caption = "Minimum Wage",
       format.args = list(big.mark = ","),
       digits = c(0, 2, 2, 2, 2)) %>% 
   kable_paper(font_size = 12,       
               html_font = "Georgia",
-              full_width = T) %>% 
+              full_width = T) %>% # allows for table to print to pdf more cleanly
   kable_styling(latex_options = "striped") %>% 
   add_footnote(footnotes) %>%
   row_spec(0, bold = T, color ="seagreen", font_size = 15) %>% #Add styling to header
@@ -424,10 +414,9 @@ table
 
 ## Conclusion
 
-
 Current discussions surrounding minimum wage increases are very polarizing, with impassioned beliefs of pros and cons from proponents and opponents of the measure. Key arguments made against raising minimum wage are that the increase could lead to inflation and job losses, and negatively impact businesses. Conversely, proponents raise points about the increased costs of living and claim that the current rate is not sufficient income. 
 
-This short analysis exposes some real issue with the current value of minimum wage in 2021, providing further evidence for those arguing that the minimum wage has some serious room to increase given overall economic growth. If a rising tide does indeed lift all boats, the current US economic system has left minimum wage earners behind and it is time to make some significant adjustments.
+This short analysis exposes some real issue with the current value of minimum wage in 2021, providing further evidence for those arguing that the minimum wage has some serious room to increase given overall economic growth. If a rising tide should lift all boats, it is time for minimum wage to buoy to the surface, and no longer leave those earners behind. 
 
 -------------------------------------------------------------------------------
 ## Appendix I: Methodology and Data
@@ -441,32 +430,32 @@ Our calculations seek to mathematically assess how minimum wage over time has re
   - Note that this data comes from a policy research institute, the Economic Policy Institute, but its source is the Bureau of Labor Statistics (BLS) Labor Productivity and Costs program.
 - Minimum wage data from: https://www.dol.gov/agencies/whd/minimum-wage/history/chart#fn4
 - CPI data from the Bureau of Labor Statistics that details the annual average CPI for the years in our scope. Data download is made possible via an API.
-    - In order to calculate the purchasing power of a dollar in 1950 in 2018 dollars, the conversion formula is: ((CPI2 - CP1) / CP1) * 100. CPI2 = CPI value in the later year; CPI1 = CPI value of the earlier year. That value would then be multiplied by the dollar amount in 1950 that we seek to convert in 1950.
     - Useful Q & A about what CPI is and how to interpret: https://www.bls.gov/cpi/questions-and-answers.htm#Question_15 </liii>
-- Presidents data from: https://github.com/meghanator5000/Dataset-List/blob/master/presidents.csv
+- Presidents data from: https://raw.githubusercontent.com/meghanator5000/Dataset-List/master/presidents.csv
 
 These source of all of these data are government sources and are therefore considered reliable, save the president's dataset which is reliable since it is easily verifiable. There are no obvious limitations to the data, except that perhaps the productivity data was cleaned by a third party and a mistake could have been made. That said, we have no reason to be directly concerned about that data.
 
-### Gather and Clean Data
+### Clean Data
 
 Guide to key datasets:
 
-1. main_set = includes all calculations and multiplies and is un-pivoted (wide)
+1. main_dataset = includes all calculations and multiplies and is un-pivoted (wide)
 2. main_dataset_final = includes all calculations and multiplies and is pivoted (long) by dollar value calculations each year
 3. wage_values_graph = graphed findings of calcuations
-4. table = table for values in years when minimum wage changed
+4. table_dataset = dataset adjusted to be presented in the table  
+5. table = table for values in years when minimum wage changed
 
 ### Calculations
 
-Productivity Multiplier: [check over]
+Productivity Multiplier: 
 The productivity multiplier plays a very important role in how we understand the value of what minimum wage would be if it rose alongside GDP. 
 We calculate the difference in percentage in productivity year to year, divide this by 100 since it is a percentage, and add 1, to make it a multiplier.
 
-Purchasing Power of Minimum Wage: [check over]
+Purchasing Power of Minimum Wage: 
 Since the minimum wage was implemented to ensure that a reasonable standard of living was sustainable, purchasing power is an important consideration. 
 We calculate purchasing power through applying the 2018 CPI over the annual average CPI for each respective year and multiplying this value by the raw minimum wage for the year.
 
-Value of Minimum Wage Factoring in Productivity: [check over]
+Value of Minimum Wage Factoring in Productivity: 
 Calculate the productivity-and-inflation-based minimum wage in 2018 dollars. 
 Here, we want to convert all dollar amounts in our dataset to 2018 dollars. 
 This will make all the values more readable to our audience. 
@@ -482,4 +471,3 @@ That said, our main_dataset needed to be adjusted by pivoting our value columns 
 
 Table Data Adjustments:
 We also made some small adjustments to our table, beginning with adding in a column for president in each of the years. We then filter for only years when the wage changed for years after 1948 and select only the five columns we want to show: year, president, raw_min_wage, min_wage_purchasing_power, and min_wage_2018_adjusted. Further, we add a column to calculate how long it has been since the last increase in minimum wage. Lastly, we change year to a character value and dollar columns to currency type.
-
