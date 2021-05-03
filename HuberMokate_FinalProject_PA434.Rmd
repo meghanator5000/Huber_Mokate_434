@@ -430,7 +430,7 @@ Here we see a very different story than the disproportional graph. The 1950s thr
 ```{r create-graph-comparing-min-wages, include = TRUE}
 wage_values_graph <- 
   ggplot() +
-    geom_bar(data = main_dataset, aes(x = year, y = wage_change), alpha = .3, stat = "identity", color = "darkseagreen1") + # shows years that minimum wage changed in green with an alpha to make the bars transparent
+    geom_bar(data = main_dataset, aes(x = year, y = wage_change), alpha = .6, stat = "identity", fill = "darkseagreen1", color = "darkseagreen1") + # shows years that minimum wage changed in green with an alpha to make the bars transparent
   geom_path(data = main_dataset_final, aes(x = year, y = Dollars, color = Type), size = 1.5) + # shows values from the "Type" column of raw_min_wage, min_wage_2018_adjusted, and min_wage_purchasing_power
   labs(title = "$ Disparity in Actual and Calculated \nMinimum Wage over Time", # title graph
        y = "Dollars", # label y axis
