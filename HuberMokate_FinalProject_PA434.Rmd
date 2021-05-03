@@ -1,7 +1,7 @@
 ---
 title: "US Economic Productivity and Minimum Wage"
 author: "Jane Huber & Meghan Mokate"
-date: "5/2/2021"
+date: "5/3/2021"
 output:
   html_document: 
     code_folding: hide
@@ -16,10 +16,16 @@ Ever since its creation, there has been vigorous debate across the US political 
 Research Question:
 
 We will examine that claim through our own analysis of the numbers looking to see: 
-What are the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables? 
+What are the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables? We will also examine the years in which minimum wage changed and consider changes by decade to provide context for past increases. This can be used to inform policymakers of how the perception and treatment of minimum wage has changed over time with hopes of providing more detailed understanding of the current rate's ability or inability to meet the established objectives of minimum wage.
 Our scope looks at the years 1948 through 2018 at the federal level. We use Consumer Price Index (CPI) throughout our calculations. The unit of analysis is the minimum wage by year.
 
 ## Findings
+
+### Decades:
+
+We find that the proportional minimum wage was increasing steadily from the 1950s to the 1970s, with a big drop off in the 1980s - from an increase of 0.81 in the 70s to 0.08 in the 80s. This recovered a bit in the 1990s and 2000s, with increases of 0.36 and 0.41, respectively. However, the increase still fails to come close to the 1960s or 1970s rates. Using 2018 as the final year of the 2010s decade, since following years are out of our scope, we see that this amount falls to 0, meaning that in the 2010s the raw federal minimum wage did not increase for a decade for the first time in history.
+
+### Wage Calculations:
 
 We calculated two variables: 2018 GDP Adjusted Minimum Wage and Minimum Wage adjusted for Purchasing Power.
 
@@ -29,7 +35,7 @@ The value for Minimum Wage adjusted for Purchasing Power demonstrates that in 19
 
 We compared our calculations to the raw federal minimum wage over the years and found that minimum wage over time has failed to keep pace with the economic factors of productivity and purchasing power. We will further discuss these comparisons and findings when examining our graph and table. 
 
-
+## Data Gathering, tidying, calculations, and theme creation
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning = FALSE)
 
@@ -43,9 +49,9 @@ library(extrafont)
 library(lubridate) # to help clean date representations
 library(kableExtra)
 library(formattable) # to change value to currency
-library(blscrapeR) # for API scraping 
-```
+library(blscrapeR) # for API scraping
 
+```
 Click to view data gathering:
 ```{r gather-data}
 # Github links to csv included for ease of downloading
@@ -312,43 +318,53 @@ for (i in seq(nrow(main_dataset))) {
 ```
 ## Decades
 
-Click here to see exploratory decades table:
 ```{r}
+# this portion will look at changes in raw minimum wage from the first year in a decade to the last year in the decade for each decade starting with the 1950s and going through the 2010s, with 2018 as the end value for this decade (though, minimum wage has not changed since 2018)
+
+raw_wage_footnote <- "Raw minimum wage in the first year of the decade"
+
 decades <- main_dataset %>%
-  select(year, raw_min_wage) %>%
+  select(year, raw_min_wage) %>% # only need these two columns
   mutate(year = as.character(year)) %>%
-  filter(str_detect(year, "0$") | str_detect(year, "9$") & year != "1949") %>%
-  mutate(decade_change = raw_min_wage - lag(raw_min_wage, default = first(raw_min_wage))) %>%
-  filter(str_detect(year, "9$")) %>%
-  mutate(decade = str_replace(year, "9$", "0s")) %>%
-  select(decade, decade_change, raw_min_wage) 
+  filter(year == "2018" | str_detect(year, "0$") | str_detect(year, "9$") & year != "1949") %>% # only want beginning and end decade years, including 2018 and excluding the 1940s
+  mutate(year = str_replace(year, "2018", "2019")) %>% # change 2018 to 2019 so that we can use str formulas more easily
+  mutate(decade_change = raw_min_wage - lag(raw_min_wage, default = first(raw_min_wage))) %>% # create calculation to find change in minimum wage over the decade
+  mutate(beg_decade_wage = ifelse(!str_detect(year, "0$"), lag(raw_min_wage), 0)) %>% # if the year does not end in 0, take the prior value, this is because when we take percentage changes, we compare to starting value
+  filter(str_detect(year, "9$")) %>% # only care about changes for end of decade 
+  mutate(decade = str_replace(year, "9$", "0s")) %>% # rename values to embody whole decade
+  select(decade, decade_change, beg_decade_wage) # select and order columns
+
+# make the rows currency values for the table
+decades$decade_change <- currency(decades$decade_change, digits = 2L)
+decades$beg_decade_wage <- currency(decades$beg_decade_wage, digits = 2L)
 
 decades_table <- decades %>%  
   kable(col.names = c("Decade",
                       "Decade Change",
                       "Raw Minimum Wage[note]"), 
-      align = "cc",
-      caption = "Raw Minimum Wage Change Each Decade",
+      align = "ccc",
+      caption = "Raw Minimum Wage Change Each Decade and 2018 value used for end of 2010s decade",
       format.args = list(big.mark = ","),
-      digits = c(0, 2, 2)) %>% 
+      digits = c(0, 2, 2)) %>% # specify decimal points
   kable_paper(font_size = 12,       
               html_font = "Georgia",
               full_width = T) %>% # allows for table to print to pdf more cleanly
   kable_styling(latex_options = "striped") %>% 
   row_spec(0, bold = T, color ="seagreen", font_size = 15) %>% #Add styling to header
   column_spec(1, bold = T) %>%
-  add_footnote("Raw minimum wage in the final year of the decade")
+  add_footnote(raw_wage_footnote)
   
 decades_table
 ```
-Click to view the exploratory decades graph creation:
+
 ```{r}
 decades_graph <- decades %>%
   ggplot() +
   geom_bar(aes(x = decade, y = decade_change), stat = "identity", fill = "darkseagreen") +
   labs(title = "Change in Raw Minimum Wage from \nEnd of Decade to Start of Decade", # title graph
        y = "Raw Minimum Wage Change", # label y axis
-       x = "Decade") + # label x axis
+       x = "Decade", # label x axis
+       caption = "2018 value used for end of 2010s decade") + 
   wage_theme +
   theme(plot.title = element_text(hjust = 0.5)) # center the title
 decades_graph # view the graph
@@ -356,20 +372,49 @@ decades_graph # view the graph
 
 ### Changes by decade:
 
-Through completing this exploratory graph, we can see that the 2000s have the greatest change in minimum wage over the periods for which we have full decades (over a $2.00 change). However, when considered, we recall that this demonstrated dollar change does not account for proportional increases, meaning that a \$0.50 increase in the 1950s is much more significant than in later decades. Therefore, we decide to adjust for proportional dollar changes in our explanatory table and graph, shown below.
+Through completing this exploratory graph, we can see that the 2000s have the greatest change in minimum wage over the periods for which we have full decades (over a $2.00 change). However, when considered, we recall that this demonstrated dollar change does not account for proportional increases, meaning that a \$0.50 increase in the 1950s is much more significant than in later decades. Therefore, we decide to adjust for proportional dollar changes in our explanatory table and graph, shown below. Though, something that does stand out about this graph is that the 2010s did not have an increase in federal minimum wage at all. 
 
-Click here to see exploratory decades table:
 ```{r}
 decades_prop <- decades %>%
-  mutate(proportional_change = decade_change / raw_min_wage) 
+  mutate(proportional_change = as.numeric(decade_change / beg_decade_wage)) # add proportion column
 
+# make these columns into currency type
+decades_prop$decade_change <- currency(decades_prop$decade_change, digits = 2L)
+decades_prop$beg_decade_wage <- currency(decades_prop$beg_decade_wage, digits = 2L)
+
+# create footnotes to be added in
+changes_raw_wage_footnote <- "Changes shown as a proportion of raw minimum wage the first year of the decade and 2018 value used for end of 2010s decade"
+footnotes_decades <- c(raw_wage_footnote,
+                       changes_raw_wage_footnote)
+
+decades_table <- decades_prop %>%  
+  kable(col.names = c("Decade",
+                      "Decade Change",
+                      "Raw Minimum Wage[note]",
+                      "Raw Minimum Wage Proportional Change[note]"), 
+      align = "cccc",
+      caption = "Proportional Change in Raw Minimum Wage from \nEnd of Decade to Start of Decade",
+      format.args = list(big.mark = ","),
+      digits = c(0, 2, 2, 2)) %>% 
+  kable_paper(font_size = 12,       
+              html_font = "Georgia",
+              full_width = T) %>% # allows for table to print to pdf more cleanly
+  kable_styling(latex_options = "striped") %>% 
+  row_spec(0, bold = T, color ="seagreen", font_size = 15) %>% #Add styling to header
+  column_spec(1, bold = T) %>%
+  add_footnote(footnotes_decades) 
+  
+decades_table
+```
+
+```{r}
 decades__prop_graph <- decades_prop %>%
   ggplot() +
   geom_bar(aes(x = decade, y = proportional_change), stat = "identity", fill = "darkseagreen") +
   labs(title = "Proportional Change in Raw Minimum Wage from \nEnd of Decade to Start of Decade", # title graph
        y = "Raw Minimum Wage Proportional Change", # label y axis
        x = "Decade", # label x axis
-       caption = "Changes shown as a proportion of raw minimum wage the final year of the decade") + 
+       caption = "Changes shown as a proportion of raw minimum wage the first year of the decade and 2018 value used for end of 2010s decade") + 
   wage_theme +
   theme(plot.title = element_text(hjust = 0.5)) # center the title
 decades__prop_graph # view the graph
@@ -378,11 +423,10 @@ decades__prop_graph # view the graph
 
 ### Proportional Changes by Decade:
 
-Here we see a very different story than the disproportional graph. The 1950s through the 1970s saw steadily increasing proportional minimum wage changes, with a steep drop off in the 1980s. This was partially recovered in the 1990s, but continues to remain significantly below proportioned increases of the earlier decades of minimum wage.
+Here we see a very different story than the disproportional graph. The 1950s through the 1970s saw steadily increasing proportional minimum wage changes, with a steep drop off in the 1980s. This was partially recovered in the 1990s, but continues to remain significantly below proportioned increases of the earlier decades of minimum wage. Still, we can see that minimum wage from 2010 to 2018 remained unchanged - an unprecedented situation.
 
 ## Wage calculations
 
-Click to view the wage calculations graph creation:
 ```{r create-graph-comparing-min-wages, include = TRUE}
 wage_values_graph <- 
   ggplot() +
@@ -437,7 +481,7 @@ wage_with_pres <-
   filter(!duplicated(year, fromLast = T))
 
 ```
-Click here to view the table preparation:
+Click here to view the table preparation and creation:
 ```{r create-table-dataset}
 # Create table data; we want to narrow down
 table_dataset <- 
@@ -472,9 +516,6 @@ footnotes <- c(year_footnote,
                gdp_min_wage_footnote,
                num_years_since_change_footnote)
 
-```
-Click here to view the table creation:
-```{r create-table, include = TRUE}
 table <- 
   table_dataset %>% 
   kable(col.names = c("Year[note]", 
@@ -504,7 +545,7 @@ table
 
 Current discussions surrounding minimum wage increases are very polarizing, with impassioned beliefs of pros and cons from proponents and opponents of the measure. Key arguments made against raising minimum wage are that the increase could lead to inflation and job losses, and negatively impact businesses. Conversely, proponents raise points about the increased costs of living and claim that the current rate is not sufficient income. 
 
-This short analysis exposes some real issue with the current value of minimum wage in 2021, providing further evidence for those arguing that the minimum wage has some serious room to increase given overall economic growth. If a rising tide should lift all boats, it is time for minimum wage to buoy to the surface, and no longer leave those earners behind. 
+This short analysis exposes some real issue with the current value of minimum wage in 2021 (which has not changed since 2018), providing further evidence for those arguing that the minimum wage has some serious room to increase given overall economic growth. If a rising tide should lift all boats, it is time for minimum wage to buoy to the surface, and no longer leave those earners behind. 
 
 -------------------------------------------------------------------------------
 ## Appendix I: Methodology and Data
@@ -554,8 +595,15 @@ We calculate this using the formula for inflation, (CPIx+1 – CPIx ) / CPIx and
 
 Since our datasets were relatively clean and tidy, there were not many changes needed to use them for the graph and table that we present.
 
+#### Decades
+To create the tables and graphs for decades, we did some calculations to find the change in minimum wage through the decade and add a column. We also added a column for proportional change in minimum wage through the decade. Further, we made sure the data was in the type we wanted (for example, currency), and selected only the columns we wanted to view. 
+
+#### Wage Calculations
+
 Graph Adjustments:
 That said, our main_dataset needed to be adjusted by pivoting our value columns so that they could all be presented as lines on the line graph. We kept a version of the main_dataset to show the bars of the years when minimum wage changed, and created a column for this. Other than that, we added in our theme and other graph features to tell the story we wanted.
+
+#### Changes in Minimum Wage
 
 Table Data Adjustments:
 We also made some small adjustments to our table, beginning with adding in a column for president in each of the years. We then filter for only years when the wage changed for years after 1948 and select only the five columns we want to show: year, president, raw_min_wage, min_wage_purchasing_power, and min_wage_2018_adjusted. Further, we add a column to calculate how long it has been since the last increase in minimum wage. Lastly, we change year to a character value and dollar columns to currency type.
