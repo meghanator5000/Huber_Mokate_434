@@ -15,8 +15,8 @@ Ever since its creation, there has been vigorous debate across the US political 
 
 ### Research Question:
 
-We will examine that claim through our own analysis of the numbers looking to see: 
-**What are the value of the minimum wage would be if, from its inception, minimum wage was increased according to those two variables?** 
+We will examine that claim by asking the question: 
+**What would the value of the minimum wage be if, from its inception, minimum wage increased according to inflation and productivity?** 
 
 We will also examine the years in which minimum wage changed and consider changes by decade to provide context for past increases. This can be used to inform policymakers of how the perception and treatment of minimum wage has changed over time with hopes of providing more detailed understanding of the current rate's ability or inability to meet the established objectives of minimum wage.
 Our scope looks at the years 1948 through 2018 at the federal level. We use Consumer Price Index (CPI) throughout our calculations. The unit of analysis is the minimum wage by year. Though, we also show minimum wage changes by decade.
