@@ -94,46 +94,46 @@ min_wage_dataset <-
 # for urban consumers, which is considered the standard for economic
 # analysis.
 
-# bls_seriesid <- "CUSR0000SA0"
-# 
-# # BLS API only allows for 10 years of data to be gathered at a time.
-# # Therefore, calculate the number of iterations through a for loop
-# # needed to capture all data.
-# 
-# num_decades <- round((2018 - 1948) / 10) + 1
-# 
-# # Set initial values for start and end year. In the for loop, we will update
-# # these values after gathering the data.
-# start_year <- 1948
-# end_year <- 1957
-# 
-# for (i in 1:num_decades) {
-# 
-#   if (i != 1) {
-# 
-#     start_year <- end_year + 1
-#     end_year <- start_year + 9
-# 
-#     if (as.numeric(end_year) > 2018) {
-#       #This is the final year that we want in the dataset.
-#       end_year <- 2018
-#     }
-#   }
-# 
-#   decade_dataset <- bls_api(seriesid = bls_seriesid,
-#                        startyear = as.character(start_year),
-#                        endyear = as.character(end_year),
-#                        annualaverage=TRUE)
-#   if (i != 1) {
-#     inflation_dataset <- bind_rows(inflation_dataset, decade_dataset)
-#   } else {
-#     inflation_dataset <- decade_dataset
-#   }
-# }
+bls_seriesid <- "CUSR0000SA0"
+
+# BLS API only allows for 10 years of data to be gathered at a time.
+# Therefore, calculate the number of iterations through a for loop
+# needed to capture all data.
+
+num_decades <- round((2018 - 1948) / 10) + 1
+
+# Set initial values for start and end year. In the for loop, we will update
+# these values after gathering the data.
+start_year <- 1948
+end_year <- 1957
+
+for (i in 1:num_decades) {
+
+  if (i != 1) {
+
+    start_year <- end_year + 1
+    end_year <- start_year + 9
+
+    if (as.numeric(end_year) > 2018) {
+      #This is the final year that we want in the dataset.
+      end_year <- 2018
+    }
+  }
+
+  decade_dataset <- bls_api(seriesid = bls_seriesid,
+                       startyear = as.character(start_year),
+                       endyear = as.character(end_year),
+                       annualaverage=TRUE)
+  if (i != 1) {
+    inflation_dataset <- bind_rows(inflation_dataset, decade_dataset)
+  } else {
+    inflation_dataset <- decade_dataset
+  }
+}
 
 # to reduce the number of times we had to run the API, we wrote to a csv and referenced this throughout our testing
-# write_csv(inflation_dataset, "Inflation_Dataset")
-inflation_dataset <- read_csv("Inflation_Dataset")
+write_csv(inflation_dataset, "Inflation_Dataset.csv")
+# inflation_dataset <- read_csv("Inflation_Dataset.csv")
 
 # https://raw.githubusercontent.com/meghanator5000/Huber_Mokate_434/main/Inflation_Dataset?token=AOVI43Q5RNTD2MNIFO3IUXDAR5N4E
 

@@ -737,46 +737,46 @@ min_wage_dataset &lt;-
 # for urban consumers, which is considered the standard for economic
 # analysis.
 
-# bls_seriesid &lt;- &quot;CUSR0000SA0&quot;
-# 
-# # BLS API only allows for 10 years of data to be gathered at a time.
-# # Therefore, calculate the number of iterations through a for loop
-# # needed to capture all data.
-# 
-# num_decades &lt;- round((2018 - 1948) / 10) + 1
-# 
-# # Set initial values for start and end year. In the for loop, we will update
-# # these values after gathering the data.
-# start_year &lt;- 1948
-# end_year &lt;- 1957
-# 
-# for (i in 1:num_decades) {
-# 
-#   if (i != 1) {
-# 
-#     start_year &lt;- end_year + 1
-#     end_year &lt;- start_year + 9
-# 
-#     if (as.numeric(end_year) &gt; 2018) {
-#       #This is the final year that we want in the dataset.
-#       end_year &lt;- 2018
-#     }
-#   }
-# 
-#   decade_dataset &lt;- bls_api(seriesid = bls_seriesid,
-#                        startyear = as.character(start_year),
-#                        endyear = as.character(end_year),
-#                        annualaverage=TRUE)
-#   if (i != 1) {
-#     inflation_dataset &lt;- bind_rows(inflation_dataset, decade_dataset)
-#   } else {
-#     inflation_dataset &lt;- decade_dataset
-#   }
-# }
+bls_seriesid &lt;- &quot;CUSR0000SA0&quot;
+
+# BLS API only allows for 10 years of data to be gathered at a time.
+# Therefore, calculate the number of iterations through a for loop
+# needed to capture all data.
+
+num_decades &lt;- round((2018 - 1948) / 10) + 1
+
+# Set initial values for start and end year. In the for loop, we will update
+# these values after gathering the data.
+start_year &lt;- 1948
+end_year &lt;- 1957
+
+for (i in 1:num_decades) {
+
+  if (i != 1) {
+
+    start_year &lt;- end_year + 1
+    end_year &lt;- start_year + 9
+
+    if (as.numeric(end_year) &gt; 2018) {
+      #This is the final year that we want in the dataset.
+      end_year &lt;- 2018
+    }
+  }
+
+  decade_dataset &lt;- bls_api(seriesid = bls_seriesid,
+                       startyear = as.character(start_year),
+                       endyear = as.character(end_year),
+                       annualaverage=TRUE)
+  if (i != 1) {
+    inflation_dataset &lt;- bind_rows(inflation_dataset, decade_dataset)
+  } else {
+    inflation_dataset &lt;- decade_dataset
+  }
+}
 
 # to reduce the number of times we had to run the API, we wrote to a csv and referenced this throughout our testing
-# write_csv(inflation_dataset, &quot;Inflation_Dataset&quot;)
-inflation_dataset &lt;- read_csv(&quot;Inflation_Dataset&quot;)
+# write_csv(inflation_dataset, &quot;Inflation_Dataset.csv&quot;)
+# inflation_dataset &lt;- read_csv(&quot;Inflation_Dataset.csv&quot;)
 
 # https://raw.githubusercontent.com/meghanator5000/Huber_Mokate_434/main/Inflation_Dataset?token=AOVI43Q5RNTD2MNIFO3IUXDAR5N4E
 
